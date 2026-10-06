@@ -2,23 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { CatalogueView } from './components/CatalogueView';
 import { Footer } from './components/Footer';
 import { ScriptModal } from './components/ScriptModal';
+import { AddScriptModal } from './components/AddScriptModal';
 import { DmcaModal } from './components/DmcaModal';
 import { Toast } from './components/Toast';
 import { getScripts } from './lib/supabase';
 import type { FiveMScript } from './types/script';
 
 import { MiniChat } from './components/MiniChat';
+import { useDiscordAuth } from './hooks/useDiscordAuth';
 
 export const App: React.FC = () => {
   const [scripts, setScripts] = useState<FiveMScript[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedScript, setSelectedScript] = useState<FiveMScript | null>(null);
   const [isDmcaOpen, setIsDmcaOpen] = useState<boolean>(false);
+  const [isAddScriptOpen, setIsAddScriptOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<{ visible: boolean; title: string; message: string }>({
     visible: false,
     title: '',
     message: ''
   });
+
+  const { user: currentUser, loginWithDiscord, logout: logoutDiscord } = useDiscordAuth();
 
   const loadData = async () => {
     try {
@@ -50,6 +55,15 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleScriptAdded = (newScript: FiveMScript) => {
+    setScripts(prev => [newScript, ...prev.filter(s => s.id !== newScript.id)]);
+    setToast({
+      visible: true,
+      title: 'Script Publicat',
+      message: `Resursa "${newScript.title}" a fost adăugată în catalog.`
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#09090b] text-[#f4f4f5] selection:bg-white selection:text-black">
       {/* Main Content Showcase */}
@@ -65,6 +79,10 @@ export const App: React.FC = () => {
             onOpenDetails={(script) => setSelectedScript(script)}
             onDownloadIncrement={handleDownloadIncrement}
             onSecurityAlert={handleSecurityAlert}
+            onOpenAddScript={() => setIsAddScriptOpen(true)}
+            currentUser={currentUser}
+            onLoginDiscord={loginWithDiscord}
+            onLogoutDiscord={logoutDiscord}
           />
         )}
       </main>
@@ -76,6 +94,15 @@ export const App: React.FC = () => {
       <ScriptModal
         script={selectedScript}
         onClose={() => setSelectedScript(null)}
+      />
+
+      {/* Add Script Modal (Protected with Discord OAuth) */}
+      <AddScriptModal
+        isOpen={isAddScriptOpen}
+        onClose={() => setIsAddScriptOpen(false)}
+        onScriptAdded={handleScriptAdded}
+        currentUser={currentUser}
+        onRequireLogin={loginWithDiscord}
       />
 
       {/* DMCA & Legal Disclaimer Modal */}

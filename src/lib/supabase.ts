@@ -16,6 +16,37 @@ export const supabase = isSupabaseConfigured
   : null;
 
 /**
+ * Discord OAuth Login via Supabase Auth
+ */
+export async function signInWithDiscord(): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase indisponibil' };
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) return { error: error.message };
+    return {};
+  } catch (err: any) {
+    return { error: err.message || 'Eroare la autentificare Discord' };
+  }
+}
+
+/**
+ * Sign out current user
+ */
+export async function signOutUser(): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.warn('Signout notice:', err);
+  }
+}
+
+/**
  * Upload a file (.zip or image) directly to Supabase Storage and returns its public URL
  */
 export async function uploadToStorage(

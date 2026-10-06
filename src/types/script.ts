@@ -1,9 +1,9 @@
-export type VrpCategory = 'all' | 'jobs' | 'nui' | 'systems' | 'garages' | 'utilities';
+export type VrpCategory = string;
 
 export interface FiveMScript {
   id: string;
   title: string;
-  category: VrpCategory;
+  category: string;
   frameworks: string[]; // ['vRP', 'vRPex', 'Dunko', 'vRP 2.0']
   version: string;
   resmon: string;
