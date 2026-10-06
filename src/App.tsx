@@ -7,6 +7,8 @@ import { Toast } from './components/Toast';
 import { getScripts } from './lib/supabase';
 import type { FiveMScript } from './types/script';
 
+import { MiniChat } from './components/MiniChat';
+
 export const App: React.FC = () => {
   const [scripts, setScripts] = useState<FiveMScript[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -81,6 +83,9 @@ export const App: React.FC = () => {
         isOpen={isDmcaOpen}
         onClose={() => setIsDmcaOpen(false)}
       />
+
+      {/* Live Mini-Chat Widget */}
+      <MiniChat />
 
       {/* Toast Notification */}
       <Toast
