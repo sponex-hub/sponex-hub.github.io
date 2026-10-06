@@ -9,6 +9,7 @@ import { CommunityMembersModal } from './CommunityMembersModal';
 interface CatalogueViewProps {
   scripts: FiveMScript[];
   onOpenDetails: (script: FiveMScript) => void;
+  onOpenAuthorProfile?: (author: string) => void;
   onDownloadIncrement?: (scriptId: string) => void;
   onSecurityAlert?: (msg: string) => void;
   onOpenAddScript: () => void;
@@ -21,6 +22,7 @@ interface CatalogueViewProps {
 export const CatalogueView: React.FC<CatalogueViewProps> = ({
   scripts,
   onOpenDetails,
+  onOpenAuthorProfile,
   onDownloadIncrement,
   onSecurityAlert,
   onOpenAddScript,
@@ -29,6 +31,7 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
   onLogoutDiscord,
   onOpenLibrary
 }) => {
+
   const { onlineCount, onlineUsers } = useRealtimePresence(currentUser);
   const [isMembersOpen, setIsMembersOpen] = useState(false);
   const totalDownloads = scripts.reduce((acc, curr) => acc + (curr.downloads || 0), 0);
@@ -154,6 +157,7 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
               key={script.id}
               script={script}
               onOpenDetails={onOpenDetails}
+              onOpenAuthorProfile={onOpenAuthorProfile}
               onDownloadIncrement={onDownloadIncrement}
               onSecurityAlert={onSecurityAlert}
             />
@@ -167,9 +171,11 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
         onClose={() => setIsMembersOpen(false)}
         onlineUsers={onlineUsers}
         scripts={scripts}
+        onOpenAuthorProfile={onOpenAuthorProfile}
       />
     </div>
   );
 };
+
 
 

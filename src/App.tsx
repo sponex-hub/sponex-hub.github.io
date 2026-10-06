@@ -18,6 +18,7 @@ import { useDiscordAuth } from './hooks/useDiscordAuth';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'catalogue' | 'profile'>('catalogue');
+  const [viewingAuthor, setViewingAuthor] = useState<string | null>(null);
   const [scripts, setScripts] = useState<FiveMScript[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedScript, setSelectedScript] = useState<FiveMScript | null>(null);
@@ -164,11 +165,15 @@ export const App: React.FC = () => {
             <span className="w-2 h-2 rounded-full bg-zinc-400 animate-ping mr-3" />
             Se încarcă resursele...
           </div>
-        ) : currentView === 'profile' && currentUser ? (
+        ) : currentView === 'profile' ? (
           <ProfileView
             currentUser={currentUser}
+            targetAuthor={viewingAuthor}
             scripts={scripts}
-            onBackToCatalogue={() => setCurrentView('catalogue')}
+            onBackToCatalogue={() => {
+              setViewingAuthor(null);
+              setCurrentView('catalogue');
+            }}
             onOpenDetails={(script) => setSelectedScript(script)}
             onOpenAddScript={() => setIsAddScriptOpen(true)}
             onEditScript={(script) => {
@@ -186,6 +191,7 @@ export const App: React.FC = () => {
             }}
             onLogout={() => {
               logoutDiscord();
+              setViewingAuthor(null);
               setCurrentView('catalogue');
             }}
           />
@@ -193,13 +199,20 @@ export const App: React.FC = () => {
           <CatalogueView
             scripts={scripts}
             onOpenDetails={(script) => setSelectedScript(script)}
+            onOpenAuthorProfile={(author) => {
+              setViewingAuthor(author);
+              setCurrentView('profile');
+            }}
             onDownloadIncrement={handleDownloadIncrement}
             onSecurityAlert={handleSecurityAlert}
             onOpenAddScript={() => setIsAddScriptOpen(true)}
             currentUser={currentUser}
             onLoginDiscord={() => setIsDiscordLoginOpen(true)}
             onLogoutDiscord={logoutDiscord}
-            onOpenLibrary={() => setCurrentView('profile')}
+            onOpenLibrary={() => {
+              setViewingAuthor(null);
+              setCurrentView('profile');
+            }}
           />
         )}
       </main>
@@ -211,6 +224,10 @@ export const App: React.FC = () => {
       <ScriptModal
         script={selectedScript}
         onClose={() => setSelectedScript(null)}
+        onOpenAuthorProfile={(author) => {
+          setViewingAuthor(author);
+          setCurrentView('profile');
+        }}
       />
 
       {/* Add Script Modal (Protected with Discord) */}

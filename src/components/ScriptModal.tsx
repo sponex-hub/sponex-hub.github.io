@@ -5,11 +5,13 @@ import type { FiveMScript } from '../types/script';
 interface ScriptModalProps {
   script: FiveMScript | null;
   onClose: () => void;
+  onOpenAuthorProfile?: (author: string) => void;
 }
 
 export const ScriptModal: React.FC<ScriptModalProps> = ({
   script,
-  onClose
+  onClose,
+  onOpenAuthorProfile
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -49,10 +51,20 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
             <span className="text-zinc-500 font-mono text-xs">/</span>
             <span className="text-zinc-400 font-mono text-xs">{script.version}</span>
             <span className="text-zinc-500 font-mono text-xs">•</span>
-            <span className="text-xs text-zinc-300 font-mono">
-              Creat de <span className="text-white font-bold">{script.author || 'Sponex'}</span>
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenAuthorProfile && script.author) {
+                  onClose();
+                  onOpenAuthorProfile(script.author);
+                }
+              }}
+              className="text-xs text-zinc-300 font-mono hover:text-white cursor-pointer transition-colors"
+            >
+              Creat de <span className="text-white font-bold underline decoration-white/30 underline-offset-2">{script.author || 'Sponex'}</span>
+            </button>
           </div>
+
 
           <h2 className="font-['Montserrat'] text-xl sm:text-2xl font-bold text-white tracking-tight">
             {script.title}

@@ -8,14 +8,17 @@ interface CommunityMembersModalProps {
   onClose: () => void;
   onlineUsers: PresenceUser[];
   scripts: FiveMScript[];
+  onOpenAuthorProfile?: (author: string) => void;
 }
 
 export const CommunityMembersModal: React.FC<CommunityMembersModalProps> = ({
   isOpen,
   onClose,
   onlineUsers,
-  scripts
+  scripts,
+  onOpenAuthorProfile
 }) => {
+
   if (!isOpen) return null;
 
   // Collect distinct authors from published scripts
@@ -127,7 +130,13 @@ export const CommunityMembersModal: React.FC<CommunityMembersModalProps> = ({
                   return (
                     <div
                       key={author}
-                      className="bg-[#0c0c0e] border border-white/[0.06] rounded-xl p-2.5 flex items-center justify-between gap-3"
+                      onClick={() => {
+                        if (onOpenAuthorProfile) {
+                          onClose();
+                          onOpenAuthorProfile(author);
+                        }
+                      }}
+                      className="bg-[#0c0c0e] hover:bg-[#15151a] border border-white/[0.06] hover:border-white/20 rounded-xl p-2.5 flex items-center justify-between gap-3 transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-3">
                         <div className="relative">
@@ -144,11 +153,11 @@ export const CommunityMembersModal: React.FC<CommunityMembersModalProps> = ({
                         </div>
 
                         <div>
-                          <div className="text-xs font-bold text-zinc-200 font-['Montserrat']">
+                          <div className="text-xs font-bold text-zinc-200 group-hover:text-white font-['Montserrat']">
                             {author}
                           </div>
                           <div className="text-[10px] text-zinc-500 font-mono">
-                            Scripter vRP
+                            Scripter vRP • Click pentru profil
                           </div>
                         </div>
                       </div>
@@ -165,6 +174,7 @@ export const CommunityMembersModal: React.FC<CommunityMembersModalProps> = ({
                     </div>
                   );
                 })}
+
               </div>
             </div>
           )}

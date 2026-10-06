@@ -8,6 +8,7 @@ import { securityShield } from '../lib/security';
 interface ScriptCardProps {
   script: FiveMScript;
   onOpenDetails: (script: FiveMScript) => void;
+  onOpenAuthorProfile?: (author: string) => void;
   onDownloadIncrement?: (scriptId: string) => void;
   onSecurityAlert?: (msg: string) => void;
 }
@@ -15,9 +16,11 @@ interface ScriptCardProps {
 export const ScriptCard: React.FC<ScriptCardProps> = ({
   script,
   onOpenDetails,
+  onOpenAuthorProfile,
   onDownloadIncrement,
   onSecurityAlert
 }) => {
+
   const cardRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [downloadCount, setDownloadCount] = useState<number>(script.downloads || 0);
@@ -183,9 +186,19 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                   <Gauge className="w-3 h-3 text-zinc-400" />
                   <span>{script.resmon}</span>
                 </span>
-                <span className="px-2.5 py-1 rounded-md bg-black/85 backdrop-blur-md text-[10px] text-zinc-300 border border-white/15">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenAuthorProfile && script.author) {
+                      onOpenAuthorProfile(script.author);
+                    }
+                  }}
+                  className="pointer-events-auto px-2.5 py-1 rounded-md bg-black/85 hover:bg-black backdrop-blur-md text-[10px] font-mono text-zinc-300 hover:text-white border border-white/15 hover:border-white/30 cursor-pointer transition-colors shadow-sm"
+                  title={`Vezi profilul creatorului ${script.author}`}
+                >
                   {script.author}
-                </span>
+                </button>
               </div>
 
               {/* Live Download Counter Badge */}
@@ -210,11 +223,24 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               <span className="text-[10px] font-mono uppercase bg-white/[0.06] border border-white/10 px-2 py-0.5 rounded text-zinc-300 font-semibold">
                 {script.category}
               </span>
-              <span className="text-[11px] text-zinc-400 font-mono flex items-center gap-1">
-                <span className="text-zinc-500">Creat de:</span>
-                <span className="text-zinc-200 font-semibold">{script.author || 'Sponex'}</span>
-              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onOpenAuthorProfile && script.author) {
+                    onOpenAuthorProfile(script.author);
+                  }
+                }}
+                className="text-[11px] text-zinc-400 font-mono flex items-center gap-1 hover:text-white transition-colors cursor-pointer group/author"
+                title={`Vezi profilul creatorului ${script.author}`}
+              >
+                <span className="text-zinc-500 group-hover/author:text-zinc-400">Creat de:</span>
+                <span className="text-zinc-200 group-hover/author:text-white font-semibold underline decoration-white/20 underline-offset-2">
+                  {script.author || 'Sponex'}
+                </span>
+              </button>
             </div>
+
 
             <h2
               onClick={() => onOpenDetails(script)}
