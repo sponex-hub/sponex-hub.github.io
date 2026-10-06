@@ -64,8 +64,6 @@ export async function getScripts(): Promise<FiveMScript[]> {
     const { data, error } = await supabase
       .from('scripts')
       .select('*')
-      .neq('category', 'chat_message')
-      .neq('category', 'review')
       .order('created_at', { ascending: false });
 
     if (error || !data) {
@@ -73,7 +71,20 @@ export async function getScripts(): Promise<FiveMScript[]> {
       return SCRIPTS_DATA;
     }
 
-    return data.map((item: any) => ({
+    // Strictly filter only real FiveM script cards
+    const validScriptRows = data.filter((item: any) => {
+      if (!item.id || typeof item.id !== 'string') return false;
+      if (item.id.startsWith('rev_') || item.id.startsWith('chat_')) return false;
+      if (item.category === 'chat_message' || item.category === 'review') return false;
+      // Must have a real script download or description
+      return item.download_url && item.download_url.endsWith('.zip');
+    });
+
+    if (validScriptRows.length === 0) {
+      return SCRIPTS_DATA;
+    }
+
+    return validScriptRows.map((item: any) => ({
       id: item.id || item.slug,
       title: item.title,
       category: item.category || 'systems',
