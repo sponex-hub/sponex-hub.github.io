@@ -9,7 +9,6 @@ import type { FiveMScript } from './types/script';
 
 import { MiniChat } from './components/MiniChat';
 import { TrustpilotBar } from './components/TrustpilotBar';
-import { LiveReviewPopup } from './components/LiveReviewPopup';
 import { AddReviewModal } from './components/AddReviewModal';
 import { fetchReviews } from './lib/supabase';
 import type { CommunityReview } from './lib/supabase';
@@ -71,7 +70,7 @@ export const App: React.FC = () => {
       {/* Main Content Showcase */}
       <main className="flex-1 max-w-[1240px] w-full mx-auto px-6 py-8 space-y-6">
         
-        {/* Trustpilot Official Rating Bar */}
+        {/* Real Dynamic Community Rating Bar */}
         <TrustpilotBar
           reviews={reviews}
           onOpenAddReview={() => setIsReviewModalOpen(true)}
@@ -114,13 +113,7 @@ export const App: React.FC = () => {
         onReviewAdded={handleRefreshReviews}
       />
 
-      {/* 3D Floating Review Notification Popup (Stays 3-4s and auto-dismisses) */}
-      <LiveReviewPopup
-        reviews={reviews}
-        onOpenReviewModal={() => setIsReviewModalOpen(true)}
-      />
-
-      {/* Live Mini-Chat Widget with Gemini AI */}
+      {/* Live Mini-Chat Widget */}
       <MiniChat />
 
       {/* Toast Notification */}

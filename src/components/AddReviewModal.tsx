@@ -54,7 +54,8 @@ export const AddReviewModal: React.FC<AddReviewModalProps> = ({
           onClose();
           setSuccess(false);
           setText('');
-        }, 1500);
+          setAuthor('');
+        }, 1200);
       }
     } catch (err) {
       console.warn('Failed to submit review:', err);
@@ -64,11 +65,11 @@ export const AddReviewModal: React.FC<AddReviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in select-none">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="bg-[#121216] border border-white/15 rounded-3xl max-w-md w-full p-6 sm:p-7 relative z-10 shadow-[0_25px_80px_rgba(0,0,0,0.95)]">
-        {/* Close */}
+      <div className="bg-[#101014] border border-white/15 rounded-2xl max-w-md w-full p-6 sm:p-7 relative z-10 shadow-[0_25px_80px_rgba(0,0,0,0.95)]">
+        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-5 right-5 text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] w-8 h-8 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
@@ -79,56 +80,58 @@ export const AddReviewModal: React.FC<AddReviewModalProps> = ({
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-6 h-6 rounded bg-[#00b67a] flex items-center justify-center text-white">
-              <Star className="w-3.5 h-3.5 fill-current" />
-            </div>
-            <span className="text-xs font-bold text-white uppercase tracking-wider font-['Montserrat']">
-              Trustpilot & Community
+            <span className="w-2 h-2 rounded-full bg-white" />
+            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider font-mono">
+              Comunitate & Feedback
             </span>
           </div>
           <h2 className="text-xl font-bold text-white font-['Montserrat'] tracking-tight">
-            Lasa o Recenzie
+            Adaugă o Recenzie
           </h2>
-          <p className="text-xs text-zinc-400 mt-1">
-            Parerea ta ajuta alti dezvoltatori de FiveM sa aleaga scripturile optimizate.
+          <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+            Părerea ta ajută ceilalți dezvoltatori de FiveM. Recenzia se salvează în timp real.
           </p>
         </div>
 
         {success ? (
-          <div className="py-10 text-center flex flex-col items-center justify-center">
-            <div className="w-12 h-12 rounded-full bg-[#00b67a]/20 border border-[#00b67a]/30 text-[#00b67a] flex items-center justify-center mb-3 animate-bounce">
-              <Check className="w-6 h-6" />
+          <div className="py-8 text-center flex flex-col items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center mb-3">
+              <Check className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <h3 className="text-base font-bold text-white">Recenzie Publicata!</h3>
+            <h3 className="text-sm font-bold text-white font-['Montserrat']">Recenzie Trimisă</h3>
             <p className="text-xs text-zinc-400 mt-1">
-              Multumim! Recenzia ta a fost salvata in baza de date.
+              Recenzia ta a fost salvată în baza de date.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Rating Star Selector */}
+            {/* Rating Stars (Minimal Clean Studio Style) */}
             <div>
-              <label className="text-[11px] font-semibold text-zinc-400 block mb-1.5 uppercase font-mono">
-                Nota ta
+              <label className="text-[10px] font-bold text-zinc-400 block mb-2 uppercase font-mono tracking-wider">
+                Evaluare (Stele)
               </label>
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => setRating(star)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                      star <= (hoverRating || rating)
-                        ? 'bg-[#00b67a] text-white scale-105 shadow-[0_2px_10px_rgba(0,182,122,0.3)]'
-                        : 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700'
-                    }`}
-                  >
-                    <Star className="w-4 h-4 fill-current" />
-                  </button>
-                ))}
-                <span className="text-xs font-bold text-zinc-200 font-mono ml-2">
+              <div className="flex items-center gap-2 bg-black/50 border border-white/[0.08] rounded-xl p-3">
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setRating(star)}
+                      className="p-1 transition-transform hover:scale-110 cursor-pointer"
+                    >
+                      <Star
+                        className={`w-5 h-5 transition-colors ${
+                          star <= (hoverRating || rating)
+                            ? 'text-white fill-white'
+                            : 'text-zinc-600'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <span className="text-xs font-bold text-white font-mono ml-auto">
                   {rating}.0 / 5.0
                 </span>
               </div>
@@ -136,43 +139,44 @@ export const AddReviewModal: React.FC<AddReviewModalProps> = ({
 
             {/* Author */}
             <div>
-              <label className="text-[11px] font-semibold text-zinc-400 block mb-1.5 uppercase font-mono">
+              <label className="text-[10px] font-bold text-zinc-400 block mb-1.5 uppercase font-mono tracking-wider">
                 Nume sau Nickname
               </label>
               <input
                 type="text"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                placeholder="Ex: Cosmin (FiveM Dev)"
+                placeholder="Ex: Marius (Dev)"
                 maxLength={30}
-                className="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-zinc-500 outline-none focus:border-white/40 transition-colors font-medium"
+                required
+                className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-white/30 transition-colors font-medium"
               />
             </div>
 
-            {/* Review Comment */}
+            {/* Comment */}
             <div>
-              <label className="text-[11px] font-semibold text-zinc-400 block mb-1.5 uppercase font-mono">
-                Mesaj / Parere despre scripturi
+              <label className="text-[10px] font-bold text-zinc-400 block mb-1.5 uppercase font-mono tracking-wider">
+                Mesaj / Comentariu
               </label>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Spune cum a functionat scriptul pe serverul tau de FiveM..."
+                placeholder="Scrie părerea ta despre script sau compatibilitatea vRP..."
                 rows={3}
-                maxLength={200}
+                maxLength={250}
                 required
-                className="w-full bg-black/60 border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-zinc-500 outline-none focus:border-white/40 transition-colors resize-none font-medium"
+                className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-white/30 transition-colors resize-none font-medium leading-relaxed"
               />
             </div>
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={!text.trim() || isSubmitting}
-              className="w-full bg-[#00b67a] hover:bg-[#009e6a] disabled:opacity-40 text-white font-['Montserrat'] text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(0,182,122,0.3)] transition-all cursor-pointer active:scale-95 mt-2"
+              className="w-full bg-white hover:bg-zinc-200 disabled:opacity-30 text-black font-['Montserrat'] text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-[0_2px_12px_rgba(255,255,255,0.15)] transition-all cursor-pointer active:scale-95 mt-2"
             >
-              <Send className="w-4 h-4" />
-              <span>{isSubmitting ? 'Se trimite...' : 'Publica Recenzia'}</span>
+              <Send className="w-3.5 h-3.5 fill-black text-black" />
+              <span>{isSubmitting ? 'Se trimite...' : 'Trimite Recenzia'}</span>
             </button>
           </form>
         )}
