@@ -30,7 +30,7 @@ export const App: React.FC = () => {
     message: ''
   });
 
-  const { user: currentUser, loginWithOAuth, loginDirectly, logout: logoutDiscord } = useDiscordAuth();
+  const { user: currentUser, oauthError, loginWithOAuth, loginDirectly, logout: logoutDiscord } = useDiscordAuth();
 
   const loadData = async () => {
     try {
@@ -211,6 +211,7 @@ export const App: React.FC = () => {
         onClose={() => setIsDiscordLoginOpen(false)}
         onOAuthLogin={loginWithOAuth}
         onDirectLogin={(username, avatarUrl) => loginDirectly(username, avatarUrl)}
+        oauthError={oauthError}
       />
 
       {/* User Library & Script Management Modal */}

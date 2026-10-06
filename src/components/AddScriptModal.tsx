@@ -52,6 +52,12 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
   const zipInputRef = useRef<HTMLInputElement>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
 
+  React.useEffect(() => {
+    if (currentUser?.name && !authorName) {
+      setAuthorName(currentUser.name);
+    }
+  }, [currentUser]);
+
   if (!isOpen) return null;
 
   // If user is not logged in with Discord, show login requirement screen
