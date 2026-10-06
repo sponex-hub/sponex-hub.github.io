@@ -4,16 +4,20 @@ import type { FiveMScript } from '../types/script';
 import { ScriptCard } from './ScriptCard';
 import { useRealtimePresence } from '../hooks/useRealtimePresence';
 
+import { ShieldCheck } from 'lucide-react';
+
 interface CatalogueViewProps {
   scripts: FiveMScript[];
   onOpenDetails: (script: FiveMScript) => void;
   onDownloadIncrement?: (scriptId: string) => void;
+  onSecurityAlert?: (msg: string) => void;
 }
 
 export const CatalogueView: React.FC<CatalogueViewProps> = ({
   scripts,
   onOpenDetails,
-  onDownloadIncrement
+  onDownloadIncrement,
+  onSecurityAlert
 }) => {
   const onlineUsers = useRealtimePresence();
   const totalDownloads = scripts.reduce((acc, curr) => acc + (curr.downloads || 0), 0);
@@ -37,6 +41,13 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
 
         {/* Real-time Presence & Stats Bar */}
         <div className="flex items-center gap-3 flex-wrap">
+          {/* DDoS / Anti-Flood Protection Indicator */}
+          <div className="flex items-center gap-2 bg-[#121215] border border-emerald-500/20 px-3.5 py-2 rounded-xl text-xs shadow-sm">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-mono font-medium text-emerald-400">Shield Activ</span>
+            <span className="text-[11px] text-zinc-500">Anti-Flood</span>
+          </div>
+
           {/* Real-time Active Online Users */}
           <div className="flex items-center gap-2 bg-[#121215] border border-white/[0.08] px-3.5 py-2 rounded-xl text-xs shadow-sm">
             <span className="relative flex h-2 w-2">
@@ -82,6 +93,7 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
               script={script}
               onOpenDetails={onOpenDetails}
               onDownloadIncrement={onDownloadIncrement}
+              onSecurityAlert={onSecurityAlert}
             />
           ))}
         </div>

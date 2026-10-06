@@ -3,16 +3,20 @@ import { Download, Info, Check, Copy, Gauge, ShieldCheck, Terminal, HardDrive } 
 import type { FiveMScript } from '../types/script';
 import { incrementDownloadCount } from '../lib/supabase';
 
+import { securityShield } from '../lib/security';
+
 interface ScriptCardProps {
   script: FiveMScript;
   onOpenDetails: (script: FiveMScript) => void;
   onDownloadIncrement?: (scriptId: string) => void;
+  onSecurityAlert?: (msg: string) => void;
 }
 
 export const ScriptCard: React.FC<ScriptCardProps> = ({
   script,
   onOpenDetails,
-  onDownloadIncrement
+  onDownloadIncrement,
+  onSecurityAlert
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
@@ -62,7 +66,27 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadClick = async () => {
+  const handleDownloadClick = async (e: React.MouseEvent) => {
+    // Check for rapid click spam / autoclicker
+    const spamCheck = securityShield.checkClickSpam();
+    if (!spamCheck.allowed) {
+      e.preventDefault();
+      if (onSecurityAlert) {
+        onSecurityAlert(spamCheck.reason || 'Protecție Anti-Flood activată!');
+      }
+      return;
+    }
+
+    // Rate limit downloads
+    const rateCheck = securityShield.rateLimit('download_script', { maxRequests: 5, windowMs: 20000 });
+    if (!rateCheck.allowed) {
+      e.preventDefault();
+      if (onSecurityAlert) {
+        onSecurityAlert(`Protecție Anti-Flood activă. Așteaptă ${rateCheck.remainingSec} secunde.`);
+      }
+      return;
+    }
+
     setDownloadCount(prev => prev + 1);
     if (onDownloadIncrement) {
       onDownloadIncrement(script.id);

@@ -40,6 +40,14 @@ export const App: React.FC = () => {
     );
   };
 
+  const handleSecurityAlert = (msg: string) => {
+    setToast({
+      visible: true,
+      title: 'Shield Anti-Flood',
+      message: msg
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#09090b] text-[#f4f4f5] selection:bg-white selection:text-black">
       {/* Main Content Showcase */}
@@ -54,6 +62,7 @@ export const App: React.FC = () => {
             scripts={scripts}
             onOpenDetails={(script) => setSelectedScript(script)}
             onDownloadIncrement={handleDownloadIncrement}
+            onSecurityAlert={handleSecurityAlert}
           />
         )}
       </main>
