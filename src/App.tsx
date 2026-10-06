@@ -5,7 +5,7 @@ import { ScriptModal } from './components/ScriptModal';
 import { AddScriptModal } from './components/AddScriptModal';
 import { DmcaModal } from './components/DmcaModal';
 import { Toast } from './components/Toast';
-import { getScripts } from './lib/supabase';
+import { supabase, getScripts } from './lib/supabase';
 import type { FiveMScript } from './types/script';
 
 import { MiniChat } from './components/MiniChat';
@@ -39,6 +39,70 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    if (!supabase) return;
+
+    // Realtime listener for live script uploads across the globe
+    const channel = supabase.channel('sponex_community_scripts_feed')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'scripts' },
+        async (payload) => {
+          // If a new script is inserted directly in the DB
+          if (payload.new && (payload.new as any).download_url?.endsWith('.zip')) {
+            const row = payload.new as any;
+            const newScript: FiveMScript = {
+              id: row.id,
+              title: row.title,
+              category: row.category || 'systems',
+              frameworks: Array.isArray(row.frameworks) ? row.frameworks : ['vRP'],
+              version: row.version || 'v1.0.0',
+              resmon: row.resmon || '0.00ms',
+              author: row.author || 'Sponex Community',
+              license: row.license || 'MIT',
+              description: row.description || '',
+              imageUrl: row.image_url || '',
+              features: Array.isArray(row.features) ? row.features : [],
+              dependencies: Array.isArray(row.dependencies) ? row.dependencies : ['vrp'],
+              cfgCommand: row.cfg_command || `ensure ${row.id}`,
+              downloadUrl: row.download_url || '#',
+              githubUrl: row.github_url || '',
+              downloads: Number(row.downloads || 0)
+            };
+
+            setScripts(prev => {
+              if (prev.some(s => s.id === newScript.id)) return prev;
+              return [newScript, ...prev];
+            });
+
+            setToast({
+              visible: true,
+              title: 'Resursă Nouă',
+              message: `Un nou script ("${newScript.title}") a fost sincronizat din baza de date!`
+            });
+          }
+        }
+      )
+      .on('broadcast', { event: 'new_script_uploaded' }, ({ payload }) => {
+        if (payload && payload.id) {
+          setScripts(prev => {
+            if (prev.some(s => s.id === payload.id)) return prev;
+            return [payload, ...prev];
+          });
+          setToast({
+            visible: true,
+            title: 'Resursă Nouă',
+            message: `Un nou script ("${payload.title}") a fost publicat pe Hub!`
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
   const handleDownloadIncrement = (scriptId: string) => {

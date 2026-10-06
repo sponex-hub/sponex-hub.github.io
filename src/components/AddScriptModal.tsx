@@ -12,7 +12,7 @@ import {
   FileText,
   AlertCircle
 } from 'lucide-react';
-import { createScript, uploadToStorage } from '../lib/supabase';
+import { createScript, uploadToStorage, supabase } from '../lib/supabase';
 import type { FiveMScript } from '../types/script';
 import type { DiscordProfile } from '../hooks/useDiscordAuth';
 
@@ -156,6 +156,20 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
         setErrorMsg(`Eroare salvare bază de date: ${result.error}`);
         setUploading(false);
         return;
+      }
+
+      // Broadcast realtime event to all online visitors
+      if (supabase) {
+        try {
+          const feedChannel = supabase.channel('sponex_community_scripts_feed');
+          feedChannel.send({
+            type: 'broadcast',
+            event: 'new_script_uploaded',
+            payload: newScript
+          });
+        } catch (e) {
+          console.warn('Realtime broadcast notice:', e);
+        }
       }
 
       setSuccess(true);
