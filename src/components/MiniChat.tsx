@@ -10,9 +10,11 @@ import {
   HelpCircle, 
   Code2, 
   Check, 
-  Radio
+  Radio,
+  Cpu
 } from 'lucide-react';
 import { supabase, fetchChatMessages, saveChatMessage } from '../lib/supabase';
+import { askGeminiAssistant } from '../lib/gemini';
 import { securityShield } from '../lib/security';
 
 export interface ChatMessage {
@@ -23,10 +25,10 @@ export interface ChatMessage {
   isOwner?: boolean;
 }
 
-const DEFAULT_WELCOME: ChatMessage = {
+const CLEAN_DEFAULT_WELCOME: ChatMessage = {
   id: 'system_welcome',
-  sender: 'Sponex',
-  text: 'Bine ai venit pe Sponex vRP Hub. Pentru intrebari despre configurare sau resurse vRP, trimite un mesaj direct.',
+  sender: 'Sponex (AI)',
+  text: 'Bine ai venit pe Sponex vRP Hub. Sunt asistentul AI integrat. Intreaba-ma orice despre scripturile vRP, instalare in server.cfg sau configurare Dunko.',
   timestamp: Date.now() - 60000,
   isOwner: true
 };
@@ -39,10 +41,11 @@ export const MiniChat: React.FC = () => {
   const [isEditingNick, setIsEditingNick] = useState<boolean>(false);
   const [tempNick, setTempNick] = useState<string>(nickname);
   const [inputText, setInputText] = useState<string>('');
-  const [messages, setMessages] = useState<ChatMessage[]>([DEFAULT_WELCOME]);
+  const [messages, setMessages] = useState<ChatMessage[]>([CLEAN_DEFAULT_WELCOME]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [chatChannel, setChatChannel] = useState<any>(null);
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isAiTyping, setIsAiTyping] = useState<boolean>(false);
 
   // 3D Button Tilt State
   const [btnRotateX, setBtnRotateX] = useState(0);
@@ -57,12 +60,18 @@ export const MiniChat: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Initial load from real Supabase Database
+  // Initial load from Supabase Database (with emoji cleaner)
   useEffect(() => {
     async function loadDatabaseMessages() {
       const dbMsgs = await fetchChatMessages();
       if (dbMsgs.length > 0) {
-        setMessages([DEFAULT_WELCOME, ...dbMsgs]);
+        // Strip any residual emojis from previous tests
+        const cleaned = dbMsgs.map(m => ({
+          ...m,
+          text: m.text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim()
+        })).filter(m => m.text.length > 0);
+
+        setMessages([CLEAN_DEFAULT_WELCOME, ...cleaned]);
       }
     }
     loadDatabaseMessages();
@@ -74,7 +83,7 @@ export const MiniChat: React.FC = () => {
       setUnreadCount(0);
       setTimeout(() => inputRef.current?.focus(), 200);
     }
-  }, [isOpen, messages]);
+  }, [isOpen, messages, isAiTyping]);
 
   // Realtime Supabase Broadcast listener
   useEffect(() => {
@@ -159,16 +168,15 @@ export const MiniChat: React.FC = () => {
       isOwner
     };
 
-    // Optimistic UI update
     setMessages(prev => [...prev, newMsg]);
     setInputText('');
     setIsSending(true);
 
     try {
-      // 1. Real Database Save to Supabase
+      // 1. Save user message to Supabase
       await saveChatMessage(nickname, cleanText, isOwner);
 
-      // 2. Realtime Broadcast to other visitors
+      // 2. Broadcast user message in realtime
       if (chatChannel) {
         await chatChannel.send({
           type: 'broadcast',
@@ -176,8 +184,35 @@ export const MiniChat: React.FC = () => {
           payload: newMsg
         });
       }
+
+      // 3. Trigger Gemini AI Assistant automatically if not typed by owner
+      if (!isOwner) {
+        setIsAiTyping(true);
+        const aiResponseText = await askGeminiAssistant(cleanText);
+        setIsAiTyping(false);
+
+        const aiMsg: ChatMessage = {
+          id: `chat_ai_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          sender: 'Sponex (AI)',
+          text: aiResponseText,
+          timestamp: Date.now(),
+          isOwner: true
+        };
+
+        setMessages(prev => [...prev, aiMsg]);
+        await saveChatMessage('Sponex (AI)', aiResponseText, true);
+
+        if (chatChannel) {
+          await chatChannel.send({
+            type: 'broadcast',
+            event: 'new_chat_message',
+            payload: aiMsg
+          });
+        }
+      }
     } catch (err) {
-      console.warn('Chat send notice:', err);
+      console.warn('Chat error:', err);
+      setIsAiTyping(false);
     } finally {
       setIsSending(false);
     }
@@ -247,7 +282,7 @@ export const MiniChat: React.FC = () => {
             >
               <div className="flex items-center gap-1.5">
                 <span className="font-['Montserrat'] font-bold text-xs tracking-tight text-white">
-                  Live Chat
+                  Live Chat AI
                 </span>
                 <span className="text-[10px] text-zinc-300 font-mono font-bold flex items-center gap-1 bg-white/10 px-1.5 py-0.2 rounded border border-white/10">
                   <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
@@ -255,7 +290,7 @@ export const MiniChat: React.FC = () => {
                 </span>
               </div>
               <span className="text-[10px] text-zinc-400 font-medium">
-                Comunitate & Suport
+                Gemini AI & Comunitate
               </span>
             </div>
 
@@ -287,21 +322,21 @@ export const MiniChat: React.FC = () => {
             <div className="bg-[#141418] border-b border-white/10 px-5 py-4 flex items-center justify-between relative z-10 shadow-md">
               <div className="flex items-center gap-3">
                 <div className="relative w-9 h-9 rounded-2xl bg-white text-black flex items-center justify-center shadow-[0_4px_14px_rgba(255,255,255,0.2)]">
-                  <Terminal className="w-4 h-4 text-black" />
+                  <Cpu className="w-4 h-4 text-black" />
                   <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-xs font-bold text-white font-['Montserrat'] tracking-tight">
-                      Sponex Community
+                      Sponex AI Support
                     </h3>
                     <span className="px-1.5 py-0.2 bg-white/10 text-zinc-300 text-[9px] font-mono rounded font-bold uppercase tracking-wider border border-white/10">
-                      Online
+                      Gemini
                     </span>
                   </div>
                   <p className="text-[10px] text-zinc-400 flex items-center gap-1 font-mono mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Baza de date sincronizata
+                    Asistenta automata FiveM vRP
                   </p>
                 </div>
               </div>
@@ -384,7 +419,7 @@ export const MiniChat: React.FC = () => {
                       {msg.isOwner && (
                         <span className="bg-white/10 text-white border border-white/20 text-[9px] font-bold px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
                           <ShieldCheck className="w-2.5 h-2.5 text-zinc-300" />
-                          <span>DEV</span>
+                          <span>AI / DEV</span>
                         </span>
                       )}
                       <span className="text-[9px] text-zinc-600 font-mono">
@@ -404,31 +439,50 @@ export const MiniChat: React.FC = () => {
                   </div>
                 );
               })}
+
+              {/* AI Typing Indicator */}
+              {isAiTyping && (
+                <div className="flex flex-col items-start animate-pulse">
+                  <div className="flex items-center gap-1.5 mb-1 px-1">
+                    <span className="text-[10px] font-bold text-zinc-400">Sponex (AI)</span>
+                    <span className="bg-white/10 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-md">
+                      GENEREAZA
+                    </span>
+                  </div>
+                  <div className="bg-[#16161c] text-zinc-400 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-2.5 text-xs flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:0.2s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:0.4s]" />
+                    <span className="text-[11px] font-mono text-zinc-400 ml-1">scrie raspunsul...</span>
+                  </div>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
 
             {/* Quick Action Chips (Lucide SVG Icons only - Zero Emojis) */}
             <div className="px-3.5 py-2 bg-[#101014] border-t border-white/[0.06] flex items-center gap-2 overflow-x-auto no-scrollbar">
               <button
-                onClick={() => setInputText('Salut! Ai suport pentru vRP Dunko?')}
-                className="text-[10px] bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 border border-white/10 rounded-xl px-2.5 py-1 whitespace-nowrap transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 font-medium"
-              >
-                <HelpCircle className="w-3 h-3 text-zinc-400" />
-                <span>Suport vRP</span>
-              </button>
-              <button
-                onClick={() => setInputText('Cum instalez scriptul de banking?')}
+                onClick={() => setInputText('Cum instalez scriptul de banking in server.cfg?')}
                 className="text-[10px] bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 border border-white/10 rounded-xl px-2.5 py-1 whitespace-nowrap transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 font-medium"
               >
                 <Terminal className="w-3 h-3 text-zinc-400" />
-                <span>Ghid instalare</span>
+                <span>Instalare Banking</span>
               </button>
               <button
-                onClick={() => setInputText('Ce versiuni de FiveM sunt compatibile?')}
+                onClick={() => setInputText('Ce framework-uri vRP sunt suportate pe acest site?')}
+                className="text-[10px] bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 border border-white/10 rounded-xl px-2.5 py-1 whitespace-nowrap transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 font-medium"
+              >
+                <HelpCircle className="w-3 h-3 text-zinc-400" />
+                <span>Compatibilitate vRP</span>
+              </button>
+              <button
+                onClick={() => setInputText('Cum optimizez resmon la 0.00ms in FiveM?')}
                 className="text-[10px] bg-white/[0.06] hover:bg-white/[0.12] text-zinc-300 border border-white/10 rounded-xl px-2.5 py-1 whitespace-nowrap transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 font-medium"
               >
                 <Code2 className="w-3 h-3 text-zinc-400" />
-                <span>Compatibilitate</span>
+                <span>Optimizare 0.00ms</span>
               </button>
             </div>
 
@@ -442,7 +496,7 @@ export const MiniChat: React.FC = () => {
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Scrie un mesaj..."
+                placeholder="Intreaba ceva despre scripturi sau FiveM..."
                 maxLength={300}
                 className="flex-1 bg-black/60 border border-white/15 rounded-xl px-4 py-3 text-xs text-white placeholder:text-zinc-500 outline-none focus:border-white/40 transition-colors font-medium"
               />
