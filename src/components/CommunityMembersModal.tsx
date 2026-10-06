@@ -31,6 +31,15 @@ export const CommunityMembersModal: React.FC<CommunityMembersModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'online'>('all');
 
+  // Canonical key function to deduplicate variations (e.g. sponeV3 -> sponex)
+  const getCanonicalAuthorKey = (name: string): string => {
+    const lower = name.toLowerCase().trim();
+    if (lower.startsWith('spone') || lower === 'sponex' || lower === 'sponev3') {
+      return 'sponex';
+    }
+    return lower;
+  };
+
   // Collect and aggregate real creators from the scripts database + online registered users
   const creatorList = useMemo(() => {
     const map = new Map<string, {
@@ -46,15 +55,16 @@ export const CommunityMembersModal: React.FC<CommunityMembersModalProps> = ({
     // 1. Process all scripts to aggregate stats per creator
     scripts.forEach(script => {
       const rawAuthor = script.author?.trim() || 'Sponex';
-      const key = rawAuthor.toLowerCase();
+      const key = getCanonicalAuthorKey(rawAuthor);
+      const displayName = key === 'sponex' ? 'Sponex' : rawAuthor;
 
       const existing = map.get(key) || {
-        name: rawAuthor,
+        name: displayName,
         scriptsCount: 0,
         downloads: 0,
         avatarUrl: script.imageUrl || undefined,
         isOnline: false,
-        role: rawAuthor.toLowerCase().includes('spone') ? 'Hub Founder & Lead Dev' : 'Scripter vRP',
+        role: key === 'sponex' ? 'Hub Founder & Lead Dev' : 'Scripter vRP',
         frameworks: new Set<string>()
       };
 
@@ -66,13 +76,16 @@ export const CommunityMembersModal: React.FC<CommunityMembersModalProps> = ({
       map.set(key, existing);
     });
 
-    // 2. Check online status from Supabase Realtime
+    // 2. Check online status from Supabase Realtime without duplicating creators
     onlineUsers.forEach(u => {
-      const key = u.name.toLowerCase().trim();
+      const key = getCanonicalAuthorKey(u.name);
       const existing = map.get(key);
       if (existing) {
         existing.isOnline = true;
         if (u.avatarUrl) existing.avatarUrl = u.avatarUrl;
+        if (key === 'sponex') {
+          existing.name = 'Sponex';
+        }
       } else if (u.isRegistered && !u.name.startsWith('Vizitator')) {
         // Authenticated user browsing who hasn't uploaded a script yet
         map.set(key, {
