@@ -5,16 +5,19 @@ import { ScriptModal } from './components/ScriptModal';
 import { AddScriptModal } from './components/AddScriptModal';
 import { EditScriptModal } from './components/EditScriptModal';
 import { DiscordLoginModal } from './components/DiscordLoginModal';
-import { UserLibraryModal } from './components/UserLibraryModal';
+import { ProfileView } from './components/ProfileView';
 import { DmcaModal } from './components/DmcaModal';
 import { Toast } from './components/Toast';
 import { supabase, getScripts } from './lib/supabase';
+
+
 import type { FiveMScript } from './types/script';
 
 import { MiniChat } from './components/MiniChat';
 import { useDiscordAuth } from './hooks/useDiscordAuth';
 
 export const App: React.FC = () => {
+  const [currentView, setCurrentView] = useState<'catalogue' | 'profile'>('catalogue');
   const [scripts, setScripts] = useState<FiveMScript[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedScript, setSelectedScript] = useState<FiveMScript | null>(null);
@@ -23,12 +26,12 @@ export const App: React.FC = () => {
   const [isAddScriptOpen, setIsAddScriptOpen] = useState<boolean>(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isDiscordLoginOpen, setIsDiscordLoginOpen] = useState<boolean>(false);
-  const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<{ visible: boolean; title: string; message: string }>({
     visible: false,
     title: '',
     message: ''
   });
+
 
   const { user: currentUser, oauthError, loginWithOAuth, loginDirectly, updateProfile, logout: logoutDiscord } = useDiscordAuth();
 
@@ -161,6 +164,31 @@ export const App: React.FC = () => {
             <span className="w-2 h-2 rounded-full bg-zinc-400 animate-ping mr-3" />
             Se încarcă resursele...
           </div>
+        ) : currentView === 'profile' && currentUser ? (
+          <ProfileView
+            currentUser={currentUser}
+            scripts={scripts}
+            onBackToCatalogue={() => setCurrentView('catalogue')}
+            onOpenDetails={(script) => setSelectedScript(script)}
+            onOpenAddScript={() => setIsAddScriptOpen(true)}
+            onEditScript={(script) => {
+              setEditingScript(script);
+              setIsEditModalOpen(true);
+            }}
+            onScriptDeleted={handleScriptDeleted}
+            onUpdateProfile={(updates) => {
+              updateProfile(updates);
+              setToast({
+                visible: true,
+                title: 'Profil Actualizat',
+                message: 'Datele profilului tău au fost actualizate.'
+              });
+            }}
+            onLogout={() => {
+              logoutDiscord();
+              setCurrentView('catalogue');
+            }}
+          />
         ) : (
           <CatalogueView
             scripts={scripts}
@@ -171,7 +199,7 @@ export const App: React.FC = () => {
             currentUser={currentUser}
             onLoginDiscord={() => setIsDiscordLoginOpen(true)}
             onLogoutDiscord={logoutDiscord}
-            onOpenLibrary={() => setIsLibraryOpen(true)}
+            onOpenLibrary={() => setCurrentView('profile')}
           />
         )}
       </main>
@@ -214,29 +242,6 @@ export const App: React.FC = () => {
         oauthError={oauthError}
       />
 
-      {/* User Library & Script Management Modal */}
-      <UserLibraryModal
-        isOpen={isLibraryOpen}
-        onClose={() => setIsLibraryOpen(false)}
-        currentUser={currentUser}
-        scripts={scripts}
-        onOpenDetails={(script) => setSelectedScript(script)}
-        onOpenAddScript={() => setIsAddScriptOpen(true)}
-        onEditScript={(script) => {
-          setEditingScript(script);
-          setIsEditModalOpen(true);
-        }}
-        onScriptDeleted={handleScriptDeleted}
-        onUpdateProfile={(updates) => {
-          updateProfile(updates);
-          setToast({
-            visible: true,
-            title: 'Profil Actualizat',
-            message: 'Datele profilului tău au fost actualizate.'
-          });
-        }}
-        onLogout={logoutDiscord}
-      />
 
 
       {/* DMCA & Legal Disclaimer Modal */}
