@@ -78,12 +78,6 @@ export const App: React.FC = () => {
               if (prev.some(s => s.id === newScript.id)) return prev;
               return [newScript, ...prev];
             });
-
-            setToast({
-              visible: true,
-              title: 'Resursă Nouă',
-              message: `Un nou script ("${newScript.title}") a fost sincronizat din baza de date!`
-            });
           }
         }
       )
@@ -93,21 +87,11 @@ export const App: React.FC = () => {
             if (prev.some(s => s.id === payload.id)) return prev;
             return [payload, ...prev];
           });
-          setToast({
-            visible: true,
-            title: 'Resursă Nouă',
-            message: `Un nou script ("${payload.title}") a fost publicat pe Hub!`
-          });
         }
       })
       .on('broadcast', { event: 'script_deleted' }, ({ payload }) => {
         if (payload && payload.id) {
           setScripts(prev => prev.filter(s => s.id !== payload.id));
-          setToast({
-            visible: true,
-            title: 'Actualizare Hub',
-            message: 'Un script a fost șters din baza de date.'
-          });
         }
       })
       .subscribe();
