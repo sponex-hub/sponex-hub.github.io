@@ -64,6 +64,7 @@ export async function getScripts(): Promise<FiveMScript[]> {
     const { data, error } = await supabase
       .from('scripts')
       .select('*')
+      .neq('category', 'chat_message')
       .order('created_at', { ascending: false });
 
     if (error || !data) {
@@ -94,6 +95,73 @@ export async function getScripts(): Promise<FiveMScript[]> {
   } catch (err) {
     console.error('Failed to query Supabase:', err);
     return SCRIPTS_DATA;
+  }
+}
+
+/**
+ * Real Database Chat: Fetch messages stored in Supabase
+ */
+export async function fetchChatMessages(): Promise<Array<{
+  id: string;
+  sender: string;
+  text: string;
+  timestamp: number;
+  isOwner?: boolean;
+}>> {
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('scripts')
+      .select('id, title, description, author, download_url, created_at')
+      .eq('category', 'chat_message')
+      .order('created_at', { ascending: true })
+      .limit(60);
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      id: row.id,
+      sender: row.title || row.author || 'Vizitator',
+      text: row.description || '',
+      timestamp: new Date(row.created_at).getTime() || Date.now(),
+      isOwner: row.download_url === 'owner' || String(row.title || '').toLowerCase().includes('sponex')
+    }));
+  } catch (err) {
+    console.warn('Failed to load chat from Supabase:', err);
+    return [];
+  }
+}
+
+/**
+ * Real Database Chat: Save message to Supabase
+ */
+export async function saveChatMessage(sender: string, text: string, isOwner: boolean = false): Promise<boolean> {
+  if (!supabase) return false;
+
+  try {
+    const { error } = await supabase
+      .from('scripts')
+      .insert([
+        {
+          id: `chat_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          title: sender,
+          description: text,
+          category: 'chat_message',
+          author: sender,
+          download_url: isOwner ? 'owner' : 'user',
+          license: 'chat',
+          version: '1.0.0',
+          resmon: '0.00ms'
+        }
+      ]);
+
+    return !error;
+  } catch (err) {
+    console.warn('Failed to save chat message to Supabase:', err);
+    return false;
   }
 }
 
