@@ -37,7 +37,7 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
 
         {/* Modal Header */}
         <div className="mb-6 pr-8">
-          <div className="flex items-center gap-2 mb-2.5">
+          <div className="flex items-center gap-2 mb-2.5 flex-wrap">
             {script.frameworks.map((fw) => (
               <span
                 key={fw}
@@ -48,6 +48,10 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
             ))}
             <span className="text-zinc-500 font-mono text-xs">/</span>
             <span className="text-zinc-400 font-mono text-xs">{script.version}</span>
+            <span className="text-zinc-500 font-mono text-xs">•</span>
+            <span className="text-xs text-zinc-300 font-mono">
+              Creat de <span className="text-white font-bold">{script.author || 'Sponex'}</span>
+            </span>
           </div>
 
           <h2 className="font-['Montserrat'] text-xl sm:text-2xl font-bold text-white tracking-tight">

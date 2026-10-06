@@ -206,6 +206,16 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           }}
         >
           <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[10px] font-mono uppercase bg-white/[0.06] border border-white/10 px-2 py-0.5 rounded text-zinc-300 font-semibold">
+                {script.category}
+              </span>
+              <span className="text-[11px] text-zinc-400 font-mono flex items-center gap-1">
+                <span className="text-zinc-500">Creat de:</span>
+                <span className="text-zinc-200 font-semibold">{script.author || 'Sponex'}</span>
+              </span>
+            </div>
+
             <h2
               onClick={() => onOpenDetails(script)}
               className="font-['Montserrat'] text-base font-bold text-white tracking-tight leading-snug mb-2 cursor-pointer hover:text-zinc-300 transition-colors"

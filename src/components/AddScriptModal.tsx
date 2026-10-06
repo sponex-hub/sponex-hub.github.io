@@ -32,6 +32,7 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
   onRequireLogin
 }) => {
   const [title, setTitle] = useState('');
+  const [authorName, setAuthorName] = useState(currentUser?.name || '');
   const [category, setCategory] = useState('systems');
   const [customCategory, setCustomCategory] = useState('');
   const [description, setDescription] = useState('');
@@ -140,7 +141,7 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
         frameworks: ['vRP'],
         version: 'v1.0.0',
         resmon: '0.00ms',
-        author: currentUser.name || 'Sponex Community',
+        author: authorName.trim() || currentUser.name || 'Sponex Community',
         license: 'MIT',
         description: fullDescription,
         imageUrl: finalImageUrl,
@@ -211,7 +212,7 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
             Adaugă Script vRP
           </h2>
           <div className="flex items-center gap-2 mt-1.5 text-xs text-zinc-400">
-            <span>Autor:</span>
+            <span>Cont Discord:</span>
             <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2 py-0.5 rounded-lg text-white font-semibold">
               {currentUser.avatarUrl && (
                 <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-4 h-4 rounded-full" />
@@ -241,25 +242,41 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             
-            {/* 1. Nume Resursă */}
-            <div>
-              <label className="text-[10px] font-bold text-zinc-400 block mb-1.5 uppercase font-mono tracking-wider">
-                Nume Resursă *
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  if (!cfgCommand) {
-                    const slug = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-');
-                    setCfgCommand(`ensure ${slug}`);
-                  }
-                }}
-                placeholder="Ex: Dunko Advanced Dealership NUI"
-                required
-                className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-white/30 transition-colors font-medium"
-              />
+            {/* 1. Nume Resursă & Autor */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 block mb-1.5 uppercase font-mono tracking-wider">
+                  Nume Resursă *
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    if (!cfgCommand) {
+                      const slug = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                      setCfgCommand(`ensure ${slug}`);
+                    }
+                  }}
+                  placeholder="Ex: Dunko Advanced Dealership"
+                  required
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-white/30 transition-colors font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 block mb-1.5 uppercase font-mono tracking-wider">
+                  Autor / Creat de *
+                </label>
+                <input
+                  type="text"
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                  placeholder={currentUser.name || 'Nume autor'}
+                  required
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-white/30 transition-colors font-medium"
+                />
+              </div>
             </div>
 
             {/* 2. Categorie (Select sau Custom) */}
