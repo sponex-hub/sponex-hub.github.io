@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Users, Download, Box, Plus, LogOut } from 'lucide-react';
 import type { FiveMScript } from '../types/script';
 import { ScriptCard } from './ScriptCard';
 import { useRealtimePresence } from '../hooks/useRealtimePresence';
 import type { DiscordProfile } from '../hooks/useDiscordAuth';
+import { CommunityMembersModal } from './CommunityMembersModal';
 
 interface CatalogueViewProps {
   scripts: FiveMScript[];
@@ -28,7 +29,8 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
   onLogoutDiscord,
   onOpenLibrary
 }) => {
-  const onlineUsers = useRealtimePresence();
+  const { onlineCount, onlineUsers } = useRealtimePresence(currentUser);
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
   const totalDownloads = scripts.reduce((acc, curr) => acc + (curr.downloads || 0), 0);
 
   return (
@@ -50,16 +52,21 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
 
         {/* Real-time Presence, Discord User & Upload Button Bar */}
         <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Real-time Active Online Users */}
-          <div className="flex items-center gap-2 bg-[#121215] border border-white/[0.08] px-3.5 py-2 rounded-xl text-xs shadow-sm">
+          {/* Real-time Active Online Users Button */}
+          <button
+            onClick={() => setIsMembersOpen(true)}
+            title="Vezi cine este online acum pe site"
+            className="flex items-center gap-2 bg-[#121215] hover:bg-[#18181f] border border-white/[0.08] hover:border-emerald-500/30 px-3.5 py-2 rounded-xl text-xs shadow-sm transition-all cursor-pointer active:scale-95"
+          >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
             <Users className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="font-mono font-medium text-white">{onlineUsers}</span>
+            <span className="font-mono font-medium text-white">{onlineCount}</span>
             <span className="text-[11px] text-zinc-400">online</span>
-          </div>
+          </button>
+
 
           {/* Total Downloads Counter */}
           <div className="flex items-center gap-2 bg-[#121215] border border-white/[0.08] px-3.5 py-2 rounded-xl text-xs shadow-sm">
@@ -153,6 +160,16 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
           ))}
         </div>
       )}
+
+      {/* Community Online & Offline Members Modal */}
+      <CommunityMembersModal
+        isOpen={isMembersOpen}
+        onClose={() => setIsMembersOpen(false)}
+        onlineUsers={onlineUsers}
+        scripts={scripts}
+      />
     </div>
   );
 };
+
+

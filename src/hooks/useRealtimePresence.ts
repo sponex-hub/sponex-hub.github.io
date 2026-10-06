@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import type { DiscordProfile } from './useDiscordAuth';
+
+export interface PresenceUser {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  isOnline: boolean;
+  isRegistered?: boolean;
+  lastSeen?: number;
+}
 
 function getStableVisitorId(): string {
   if (typeof window === 'undefined') return 'visitor_ssr';
@@ -11,38 +21,67 @@ function getStableVisitorId(): string {
   return id;
 }
 
-export function useRealtimePresence(): number {
+export function useRealtimePresence(currentUser?: DiscordProfile | null) {
   const [onlineCount, setOnlineCount] = useState<number>(1);
+  const [onlineUsers, setOnlineUsers] = useState<PresenceUser[]>([]);
 
   useEffect(() => {
     if (!supabase) return;
 
-    const stableKey = getStableVisitorId();
+    const visitorId = getStableVisitorId();
+    const presenceKey = currentUser?.id || visitorId;
+
     const channel = supabase.channel('site_presence_v1', {
       config: {
         presence: {
-          key: stableKey,
+          key: presenceKey,
         },
       },
     });
 
-    const updatePresenceCount = () => {
+    const updatePresenceState = () => {
       const state = channel.presenceState();
-      // Count unique presence keys
-      const uniqueKeys = Object.keys(state);
-      setOnlineCount(Math.max(1, uniqueKeys.length));
+      const userList: PresenceUser[] = [];
+
+      Object.entries(state).forEach(([key, presences]: [string, any]) => {
+        if (Array.isArray(presences) && presences.length > 0) {
+          const latest = presences[presences.length - 1];
+          userList.push({
+            id: key,
+            name: latest.name || (key.startsWith('usr_') ? `Vizitator #${key.slice(-4)}` : 'Membru'),
+            avatarUrl: latest.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(latest.name || key)}`,
+            isOnline: true,
+            isRegistered: Boolean(latest.isRegistered),
+            lastSeen: latest.lastSeen || Date.now()
+          });
+        }
+      });
+
+      // Ensure unique by ID
+      const uniqueMap = new Map<string, PresenceUser>();
+      userList.forEach(u => uniqueMap.set(u.id, u));
+      const finalUsers = Array.from(uniqueMap.values());
+
+      setOnlineUsers(finalUsers);
+      setOnlineCount(Math.max(1, finalUsers.length));
     };
 
     channel
-      .on('presence', { event: 'sync' }, updatePresenceCount)
-      .on('presence', { event: 'join' }, updatePresenceCount)
-      .on('presence', { event: 'leave' }, updatePresenceCount)
+      .on('presence', { event: 'sync' }, updatePresenceState)
+      .on('presence', { event: 'join' }, updatePresenceState)
+      .on('presence', { event: 'leave' }, updatePresenceState)
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({
-            online_at: Date.now(),
-          });
-          updatePresenceCount();
+          const payload = {
+            id: presenceKey,
+            name: currentUser?.name || `Vizitator #${visitorId.slice(-4)}`,
+            avatarUrl: currentUser?.avatarUrl || '',
+            isRegistered: Boolean(currentUser),
+            lastSeen: Date.now(),
+          };
+
+          await channel.track(payload);
+          updatePresenceState();
         }
       });
 
@@ -52,8 +91,11 @@ export function useRealtimePresence(): number {
         supabase.removeChannel(channel);
       }
     };
+  }, [currentUser?.id, currentUser?.name, currentUser?.avatarUrl]);
 
-  }, []);
-
-  return onlineCount;
+  return {
+    onlineCount,
+    onlineUsers
+  };
 }
+
