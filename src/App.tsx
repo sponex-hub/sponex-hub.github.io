@@ -8,7 +8,6 @@ import { getScripts } from './lib/supabase';
 import type { FiveMScript } from './types/script';
 
 import { MiniChat } from './components/MiniChat';
-import { TrustpilotBar } from './components/TrustpilotBar';
 
 export const App: React.FC = () => {
   const [scripts, setScripts] = useState<FiveMScript[]>([]);
@@ -55,10 +54,6 @@ export const App: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-[#09090b] text-[#f4f4f5] selection:bg-white selection:text-black">
       {/* Main Content Showcase */}
       <main className="flex-1 max-w-[1240px] w-full mx-auto px-6 py-8 space-y-6">
-        
-        {/* Official Trustpilot Profile Link Bar */}
-        <TrustpilotBar />
-
         {loading ? (
           <div className="flex items-center justify-center py-28 text-xs text-zinc-500 font-mono">
             <span className="w-2 h-2 rounded-full bg-zinc-400 animate-ping mr-3" />

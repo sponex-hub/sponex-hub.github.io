@@ -1,5 +1,4 @@
-import React from 'react';
-import { Scale, ShieldCheck } from 'lucide-react';
+import { Scale, ShieldCheck, ExternalLink } from 'lucide-react';
 
 interface FooterProps {
   onOpenDmca: () => void;
@@ -20,8 +19,18 @@ export const Footer: React.FC<FooterProps> = ({ onOpenDmca }) => {
           </span>
         </div>
 
-        {/* DMCA & Disclaimer Buttons */}
-        <div className="flex items-center gap-3">
+        {/* Links & Disclaimer */}
+        <div className="flex items-center gap-3 flex-wrap justify-center">
+          <a
+            href="https://www.trustpilot.com/review/sponex-hub.github.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <span>Trustpilot</span>
+            <ExternalLink className="w-3 h-3 text-zinc-500" />
+          </a>
+
           <button
             onClick={onOpenDmca}
             className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
