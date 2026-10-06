@@ -19,48 +19,67 @@ export function useDiscordAuth() {
   const mapSupabaseUser = (sbUser: SupabaseUser | null): DiscordProfile | null => {
     if (!sbUser) return null;
     const meta = sbUser.user_metadata || {};
+    const name = meta.global_name || meta.full_name || meta.name || meta.user_name || meta.preferred_username || meta.custom_claims?.global_name || sbUser.email?.split('@')[0] || 'Discord User';
+    
+    let avatar = meta.avatar_url || meta.picture || '';
+    if (!avatar && meta.provider_id && meta.avatar) {
+      avatar = `https://cdn.discordapp.com/avatars/${meta.provider_id}/${meta.avatar}.png`;
+    }
+    if (!avatar) {
+      avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`;
+    }
+
     return {
       id: sbUser.id,
-      name: meta.custom_claims?.global_name || meta.full_name || meta.name || meta.user_name || sbUser.email?.split('@')[0] || 'Discord User',
-      avatarUrl: meta.avatar_url || meta.picture || '',
+      name: name,
+      avatarUrl: avatar,
       email: sbUser.email,
       isDirect: false
     };
   };
 
   useEffect(() => {
-    // 1. Check local direct session first
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.name) {
-          setUser(parsed);
-          setLoading(false);
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Error reading stored session:', e);
-    }
-
     if (!supabase) {
       setLoading(false);
       return;
     }
 
-    // 2. Get Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 1. Listen to auth changes first (captures SIGNED_IN from URL hash immediately)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        setUser(mapSupabaseUser(session.user));
+        const profile = mapSupabaseUser(session.user);
+        setUser(profile);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
+        } catch (e) {}
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        try {
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+        } catch (e) {}
       }
       setLoading(false);
     });
 
-    // 3. Listen to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // 2. Get Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setUser(mapSupabaseUser(session.user));
+        const profile = mapSupabaseUser(session.user);
+        setUser(profile);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
+        } catch (e) {}
+      } else {
+        // Fallback to local stored session if any
+        try {
+          const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.name) {
+              setUser(parsed);
+            }
+          }
+        } catch (e) {}
       }
       setLoading(false);
     });
