@@ -10,10 +10,9 @@ import {
   Check, 
   User, 
   FolderKanban, 
-  Loader2,
-  ShieldCheck,
-  Calendar
+  Loader2
 } from 'lucide-react';
+
 
 import type { FiveMScript } from '../types/script';
 import type { DiscordProfile } from '../hooks/useDiscordAuth';
@@ -149,31 +148,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-bold text-white font-['Montserrat'] tracking-tight">
-                  {currentUser.name}
-                </h1>
-                <span className="inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-mono px-2.5 py-0.5 rounded-lg">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Creator FiveM</span>
-                </span>
-              </div>
-
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white font-['Montserrat'] tracking-tight">
+                {currentUser.name}
+              </h1>
               <p className="text-xs text-zinc-400 font-mono">
-                ID Cont: <span className="text-zinc-300">{currentUser.id}</span>
+                ID: <span className="text-zinc-300">{currentUser.id}</span>
               </p>
-
-              <div className="flex items-center gap-3 text-xs text-zinc-400 pt-1">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                  Membru Comunitate
-                </span>
-                <span>•</span>
-                <span className="text-emerald-400 font-medium">Cont Activ</span>
-              </div>
             </div>
           </div>
+
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
