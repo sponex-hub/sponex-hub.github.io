@@ -8,12 +8,19 @@ import { getScripts } from './lib/supabase';
 import type { FiveMScript } from './types/script';
 
 import { MiniChat } from './components/MiniChat';
+import { TrustpilotBar } from './components/TrustpilotBar';
+import { LiveReviewPopup } from './components/LiveReviewPopup';
+import { AddReviewModal } from './components/AddReviewModal';
+import { fetchReviews } from './lib/supabase';
+import type { CommunityReview } from './lib/supabase';
 
 export const App: React.FC = () => {
   const [scripts, setScripts] = useState<FiveMScript[]>([]);
+  const [reviews, setReviews] = useState<CommunityReview[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedScript, setSelectedScript] = useState<FiveMScript | null>(null);
   const [isDmcaOpen, setIsDmcaOpen] = useState<boolean>(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<{ visible: boolean; title: string; message: string }>({
     visible: false,
     title: '',
@@ -23,10 +30,14 @@ export const App: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const data = await getScripts();
-      setScripts(data);
+      const [scriptsData, reviewsData] = await Promise.all([
+        getScripts(),
+        fetchReviews()
+      ]);
+      setScripts(scriptsData);
+      setReviews(reviewsData);
     } catch (err) {
-      console.error('Error loading scripts:', err);
+      console.error('Error loading scripts & reviews:', err);
     } finally {
       setLoading(false);
     }
@@ -50,10 +61,22 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleRefreshReviews = async () => {
+    const revs = await fetchReviews();
+    setReviews(revs);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#09090b] text-[#f4f4f5] selection:bg-white selection:text-black">
       {/* Main Content Showcase */}
-      <main className="flex-1 max-w-[1240px] w-full mx-auto px-6 py-10">
+      <main className="flex-1 max-w-[1240px] w-full mx-auto px-6 py-8 space-y-6">
+        
+        {/* Trustpilot Official Rating Bar */}
+        <TrustpilotBar
+          reviews={reviews}
+          onOpenAddReview={() => setIsReviewModalOpen(true)}
+        />
+
         {loading ? (
           <div className="flex items-center justify-center py-28 text-xs text-zinc-500 font-mono">
             <span className="w-2 h-2 rounded-full bg-zinc-400 animate-ping mr-3" />
@@ -84,7 +107,20 @@ export const App: React.FC = () => {
         onClose={() => setIsDmcaOpen(false)}
       />
 
-      {/* Live Mini-Chat Widget */}
+      {/* Add Review Modal */}
+      <AddReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        onReviewAdded={handleRefreshReviews}
+      />
+
+      {/* 3D Floating Review Notification Popup (Stays 3-4s and auto-dismisses) */}
+      <LiveReviewPopup
+        reviews={reviews}
+        onOpenReviewModal={() => setIsReviewModalOpen(true)}
+      />
+
+      {/* Live Mini-Chat Widget with Gemini AI */}
       <MiniChat />
 
       {/* Toast Notification */}

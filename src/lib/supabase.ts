@@ -65,6 +65,7 @@ export async function getScripts(): Promise<FiveMScript[]> {
       .from('scripts')
       .select('*')
       .neq('category', 'chat_message')
+      .neq('category', 'review')
       .order('created_at', { ascending: false });
 
     if (error || !data) {
@@ -95,6 +96,75 @@ export async function getScripts(): Promise<FiveMScript[]> {
   } catch (err) {
     console.error('Failed to query Supabase:', err);
     return SCRIPTS_DATA;
+  }
+}
+
+export interface CommunityReview {
+  id: string;
+  author: string;
+  text: string;
+  rating: number;
+  timestamp: number;
+  isVerified?: boolean;
+}
+
+/**
+ * Fetch all verified community reviews from Supabase
+ */
+export async function fetchReviews(): Promise<CommunityReview[]> {
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('scripts')
+      .select('id, title, description, author, version, download_url, created_at')
+      .eq('category', 'review')
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (error || !data) return [];
+
+    return data.map((row: any) => ({
+      id: row.id,
+      author: row.author || row.title || 'Membru Comunitate',
+      text: row.description || '',
+      rating: parseInt(row.version, 10) || 5,
+      timestamp: new Date(row.created_at).getTime() || Date.now(),
+      isVerified: row.download_url === 'verified'
+    }));
+  } catch (err) {
+    console.warn('Failed to fetch reviews:', err);
+    return [];
+  }
+}
+
+/**
+ * Save new community review to Supabase
+ */
+export async function saveReview(author: string, text: string, rating: number = 5): Promise<boolean> {
+  if (!supabase) return false;
+
+  try {
+    const { error } = await supabase
+      .from('scripts')
+      .insert([
+        {
+          id: `rev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          title: author,
+          description: text,
+          category: 'review',
+          author: author,
+          download_url: 'verified',
+          version: rating.toString(),
+          license: 'review',
+          resmon: '0.00ms'
+        }
+      ]);
+
+    return !error;
+  } catch (err) {
+    console.warn('Failed to save review to Supabase:', err);
+    return false;
   }
 }
 
