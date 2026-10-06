@@ -7,7 +7,8 @@ import {
   ExternalLink, 
   Box, 
   Loader2,
-  FolderKanban
+  FolderKanban,
+  Pencil
 } from 'lucide-react';
 import type { FiveMScript } from '../types/script';
 import type { DiscordProfile } from '../hooks/useDiscordAuth';
@@ -20,6 +21,7 @@ interface UserLibraryModalProps {
   scripts: FiveMScript[];
   onOpenDetails: (script: FiveMScript) => void;
   onOpenAddScript: () => void;
+  onEditScript: (script: FiveMScript) => void;
   onScriptDeleted: (scriptId: string) => void;
   onLogout: () => void;
 }
@@ -31,6 +33,7 @@ export const UserLibraryModal: React.FC<UserLibraryModalProps> = ({
   scripts,
   onOpenDetails,
   onOpenAddScript,
+  onEditScript,
   onScriptDeleted,
   onLogout
 }) => {
@@ -215,6 +218,18 @@ export const UserLibraryModal: React.FC<UserLibraryModalProps> = ({
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onEditScript(script);
+                    }}
+                    className="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 hover:text-amber-200 transition-colors cursor-pointer text-xs flex items-center gap-1.5 font-medium"
+                    title="Editează Scriptul"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Editează</span>
+                  </button>
+
                   <button
                     onClick={() => {
                       onClose();

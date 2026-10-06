@@ -392,3 +392,42 @@ export async function deleteScript(scriptId: string): Promise<{ success: boolean
   }
 }
 
+/**
+ * Update an existing vRP script in Supabase database
+ */
+export async function updateScript(scriptId: string, updates: Partial<FiveMScript>): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase nu este conectat' };
+  }
+
+  try {
+    const payload: any = {};
+    if (updates.title !== undefined) payload.title = updates.title;
+    if (updates.category !== undefined) payload.category = updates.category;
+    if (updates.version !== undefined) payload.version = updates.version;
+    if (updates.resmon !== undefined) payload.resmon = updates.resmon;
+    if (updates.author !== undefined) payload.author = updates.author;
+    if (updates.license !== undefined) payload.license = updates.license;
+    if (updates.description !== undefined) payload.description = updates.description;
+    if (updates.imageUrl !== undefined) payload.image_url = updates.imageUrl;
+    if (updates.features !== undefined) payload.features = updates.features;
+    if (updates.dependencies !== undefined) payload.dependencies = updates.dependencies;
+    if (updates.cfgCommand !== undefined) payload.cfg_command = updates.cfgCommand;
+    if (updates.downloadUrl !== undefined) payload.download_url = updates.downloadUrl;
+
+    const { error } = await supabase
+      .from('scripts')
+      .update(payload)
+      .eq('id', scriptId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Eroare la actualizare' };
+  }
+}
+
+

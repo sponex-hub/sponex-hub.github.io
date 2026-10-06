@@ -3,6 +3,7 @@ import { CatalogueView } from './components/CatalogueView';
 import { Footer } from './components/Footer';
 import { ScriptModal } from './components/ScriptModal';
 import { AddScriptModal } from './components/AddScriptModal';
+import { EditScriptModal } from './components/EditScriptModal';
 import { DiscordLoginModal } from './components/DiscordLoginModal';
 import { UserLibraryModal } from './components/UserLibraryModal';
 import { DmcaModal } from './components/DmcaModal';
@@ -17,8 +18,10 @@ export const App: React.FC = () => {
   const [scripts, setScripts] = useState<FiveMScript[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedScript, setSelectedScript] = useState<FiveMScript | null>(null);
+  const [editingScript, setEditingScript] = useState<FiveMScript | null>(null);
   const [isDmcaOpen, setIsDmcaOpen] = useState<boolean>(false);
   const [isAddScriptOpen, setIsAddScriptOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isDiscordLoginOpen, setIsDiscordLoginOpen] = useState<boolean>(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<{ visible: boolean; title: string; message: string }>({
@@ -89,6 +92,11 @@ export const App: React.FC = () => {
           });
         }
       })
+      .on('broadcast', { event: 'script_updated' }, ({ payload }) => {
+        if (payload && payload.id) {
+          setScripts(prev => prev.map(s => s.id === payload.id ? payload : s));
+        }
+      })
       .on('broadcast', { event: 'script_deleted' }, ({ payload }) => {
         if (payload && payload.id) {
           setScripts(prev => prev.filter(s => s.id !== payload.id));
@@ -123,6 +131,15 @@ export const App: React.FC = () => {
       visible: true,
       title: 'Script Publicat',
       message: `Resursa "${newScript.title}" a fost adăugată în catalog.`
+    });
+  };
+
+  const handleScriptUpdated = (updatedScript: FiveMScript) => {
+    setScripts(prev => prev.map(s => s.id === updatedScript.id ? updatedScript : s));
+    setToast({
+      visible: true,
+      title: 'Script Actualizat',
+      message: `Resursa "${updatedScript.title}" a fost actualizată.`
     });
   };
 
@@ -177,6 +194,17 @@ export const App: React.FC = () => {
         onRequireLogin={() => setIsDiscordLoginOpen(true)}
       />
 
+      {/* Edit Script Modal */}
+      <EditScriptModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingScript(null);
+        }}
+        script={editingScript}
+        onScriptUpdated={handleScriptUpdated}
+      />
+
       {/* Discord Login / Connect Modal */}
       <DiscordLoginModal
         isOpen={isDiscordLoginOpen}
@@ -193,6 +221,10 @@ export const App: React.FC = () => {
         scripts={scripts}
         onOpenDetails={(script) => setSelectedScript(script)}
         onOpenAddScript={() => setIsAddScriptOpen(true)}
+        onEditScript={(script) => {
+          setEditingScript(script);
+          setIsEditModalOpen(true);
+        }}
         onScriptDeleted={handleScriptDeleted}
         onLogout={logoutDiscord}
       />
