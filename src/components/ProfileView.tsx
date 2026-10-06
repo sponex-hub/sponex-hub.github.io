@@ -52,12 +52,30 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   // Filter scripts uploaded by current user
   const userScripts = scripts.filter(s => {
-    if (s.githubUrl && s.githubUrl === `author:${currentUser.id}`) return true;
-    if (s.author && s.author.toLowerCase() === currentUser.name.toLowerCase()) return true;
+    if (!s) return false;
+    const authorLower = (s.author || '').toLowerCase().trim();
+    const userLower = (currentUser.name || '').toLowerCase().trim();
+    const userId = currentUser.id || '';
+
+    // 1. Direct ID match in githubUrl
+    if (s.githubUrl && userId && s.githubUrl.includes(userId)) return true;
+
+    // 2. Exact author name match
+    if (authorLower && userLower && authorLower === userLower) return true;
+
+    // 3. Sponex / sponev3 / owner alias matching
+    if (
+      (userLower.startsWith('spone') || userLower.includes('sponex')) &&
+      (authorLower.startsWith('spone') || authorLower.includes('sponex'))
+    ) {
+      return true;
+    }
+
     return false;
   });
 
   const totalDownloads = userScripts.reduce((acc, s) => acc + (s.downloads || 0), 0);
+
 
   const handleDelete = async (scriptId: string) => {
     setDeletingId(scriptId);
