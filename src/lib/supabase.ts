@@ -26,7 +26,7 @@ export const supabase = isSupabaseConfigured
  */
 export async function signInWithDiscord(): Promise<{ error?: string }> {
   try {
-    const clientId = '1357141985653948567';
+    const clientId = '1557141985653948567';
     const origin = window.location.origin;
     const path = window.location.pathname.endsWith('/') ? window.location.pathname : `${window.location.pathname}/`;
     const cleanUrl = `${origin}${path}`;
@@ -41,6 +41,7 @@ export async function signInWithDiscord(): Promise<{ error?: string }> {
     return { error: err.message || 'Eroare la redirecționare Discord' };
   }
 }
+
 
 
 /**
