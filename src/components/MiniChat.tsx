@@ -10,11 +10,10 @@ import {
   HelpCircle, 
   Code2, 
   Check, 
-  Radio,
-  Cpu
+  Radio
 } from 'lucide-react';
 import { supabase, fetchChatMessages, saveChatMessage } from '../lib/supabase';
-import { askGeminiAssistant } from '../lib/gemini';
+import { askAssistant } from '../lib/gemini';
 import { securityShield } from '../lib/security';
 
 export interface ChatMessage {
@@ -27,8 +26,8 @@ export interface ChatMessage {
 
 const CLEAN_DEFAULT_WELCOME: ChatMessage = {
   id: 'system_welcome',
-  sender: 'Sponex (AI)',
-  text: 'Bine ai venit pe Sponex vRP Hub. Sunt asistentul AI integrat. Intreaba-ma orice despre scripturile vRP, instalare in server.cfg sau configurare Dunko.',
+  sender: 'Sponex Support',
+  text: 'Bine ai venit pe Sponex vRP Hub. Pentru intrebari despre instalare in server.cfg, compatibilitate Dunko sau configurare resurse, scrie un mesaj aici.',
   timestamp: Date.now() - 60000,
   isOwner: true
 };
@@ -185,30 +184,28 @@ export const MiniChat: React.FC = () => {
         });
       }
 
-      // 3. Trigger Gemini AI Assistant automatically if not typed by owner
-      if (!isOwner) {
-        setIsAiTyping(true);
-        const aiResponseText = await askGeminiAssistant(cleanText);
-        setIsAiTyping(false);
+      // 3. Automated Sponex Support Bot reply
+      setIsAiTyping(true);
+      const botResponseText = await askAssistant(cleanText);
+      setIsAiTyping(false);
 
-        const aiMsg: ChatMessage = {
-          id: `chat_ai_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          sender: 'Sponex (AI)',
-          text: aiResponseText,
-          timestamp: Date.now(),
-          isOwner: true
-        };
+      const botMsg: ChatMessage = {
+        id: `chat_bot_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        sender: 'Sponex Support',
+        text: botResponseText,
+        timestamp: Date.now(),
+        isOwner: true
+      };
 
-        setMessages(prev => [...prev, aiMsg]);
-        await saveChatMessage('Sponex (AI)', aiResponseText, true);
+      setMessages(prev => [...prev, botMsg]);
+      await saveChatMessage('Sponex Support', botResponseText, true);
 
-        if (chatChannel) {
-          await chatChannel.send({
-            type: 'broadcast',
-            event: 'new_chat_message',
-            payload: aiMsg
-          });
-        }
+      if (chatChannel) {
+        await chatChannel.send({
+          type: 'broadcast',
+          event: 'new_chat_message',
+          payload: botMsg
+        });
       }
     } catch (err) {
       console.warn('Chat error:', err);
@@ -282,7 +279,7 @@ export const MiniChat: React.FC = () => {
             >
               <div className="flex items-center gap-1.5">
                 <span className="font-['Montserrat'] font-bold text-xs tracking-tight text-white">
-                  Live Chat AI
+                  Live Chat
                 </span>
                 <span className="text-[10px] text-zinc-300 font-mono font-bold flex items-center gap-1 bg-white/10 px-1.5 py-0.2 rounded border border-white/10">
                   <Radio className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
@@ -290,7 +287,7 @@ export const MiniChat: React.FC = () => {
                 </span>
               </div>
               <span className="text-[10px] text-zinc-400 font-medium">
-                Gemini AI & Comunitate
+                Comunitate & Suport
               </span>
             </div>
 
@@ -322,21 +319,21 @@ export const MiniChat: React.FC = () => {
             <div className="bg-[#141418] border-b border-white/10 px-5 py-4 flex items-center justify-between relative z-10 shadow-md">
               <div className="flex items-center gap-3">
                 <div className="relative w-9 h-9 rounded-2xl bg-white text-black flex items-center justify-center shadow-[0_4px_14px_rgba(255,255,255,0.2)]">
-                  <Cpu className="w-4 h-4 text-black" />
+                  <Terminal className="w-4 h-4 text-black" />
                   <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-black" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-xs font-bold text-white font-['Montserrat'] tracking-tight">
-                      Sponex AI Support
+                      Sponex Support
                     </h3>
-                    <span className="px-1.5 py-0.2 bg-white/10 text-zinc-300 text-[9px] font-mono rounded font-bold uppercase tracking-wider border border-white/10">
-                      Gemini
+                    <span className="px-1.5 py-0.2 bg-emerald-500/15 text-emerald-400 text-[9px] font-mono rounded font-bold uppercase tracking-wider border border-emerald-500/20">
+                      Live
                     </span>
                   </div>
                   <p className="text-[10px] text-zinc-400 flex items-center gap-1 font-mono mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Asistenta automata FiveM vRP
+                    Asistenta vRP & Scripturi
                   </p>
                 </div>
               </div>
@@ -419,7 +416,7 @@ export const MiniChat: React.FC = () => {
                       {msg.isOwner && (
                         <span className="bg-white/10 text-white border border-white/20 text-[9px] font-bold px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
                           <ShieldCheck className="w-2.5 h-2.5 text-zinc-300" />
-                          <span>AI / DEV</span>
+                          <span>DEV</span>
                         </span>
                       )}
                       <span className="text-[9px] text-zinc-600 font-mono">
@@ -440,13 +437,13 @@ export const MiniChat: React.FC = () => {
                 );
               })}
 
-              {/* AI Typing Indicator */}
+              {/* Bot Typing Indicator */}
               {isAiTyping && (
                 <div className="flex flex-col items-start animate-pulse">
                   <div className="flex items-center gap-1.5 mb-1 px-1">
-                    <span className="text-[10px] font-bold text-zinc-400">Sponex (AI)</span>
-                    <span className="bg-white/10 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-md">
-                      GENEREAZA
+                    <span className="text-[10px] font-bold text-zinc-400">Sponex Support</span>
+                    <span className="bg-emerald-500/15 text-emerald-400 text-[9px] font-bold px-1.5 py-0.2 rounded-md border border-emerald-500/20 font-mono">
+                      RASPUNDE
                     </span>
                   </div>
                   <div className="bg-[#16161c] text-zinc-400 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-2.5 text-xs flex items-center gap-2">

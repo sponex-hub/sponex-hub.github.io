@@ -1,67 +1,102 @@
 /**
- * Google Gemini AI Integration for Sponex vRP Hub
- * Model: gemini-3.5-flash-lite
+ * Sponex Assistant Engine for FiveM vRP
+ * Combines intelligent FiveM vRP knowledge base with Google Gemini AI
  */
 
-function getApiKey(): string {
-  if (typeof window !== 'undefined' && (window as any).__GEMINI_KEY__) {
-    return (window as any).__GEMINI_KEY__;
+const LOCAL_KNOWLEDGE: Array<{ keywords: string[]; answer: string }> = [
+  {
+    keywords: ['banking', 'banca', 'atm', 'bani', 'card'],
+    answer: 'Scriptul Dunko Banking & ATM include interfata NUI, depuneri, retrageri si transferuri. Pentru instalare, plaseaza folderul "banking" in directorul resources si adauga "ensure banking" in server.cfg.'
+  },
+  {
+    keywords: ['instal', 'server.cfg', 'cum pun', 'cfg', 'start', 'ensure'],
+    answer: 'Pentru a instala orice script descarcat de pe Sponex: 1. Dezarhiveaza fisierul .zip in resources/[vrp]/ 2. Deschide server.cfg 3. Adauga linia "ensure <nume_script>" dupa resursele de baza vRP.'
+  },
+  {
+    keywords: ['resmon', 'lag', 'fps', 'optimiz', 'consum', 'ms'],
+    answer: 'Toate scripturile de pe Sponex sunt optimizate pentru 0.00ms resmon in idle si maxim 0.01ms in utilizare, folosind tick-uri dinamice si interfețe NUI separate.'
+  },
+  {
+    keywords: ['vrp', 'dunko', 'framework', 'vrpex', 'compatib'],
+    answer: 'Resursele sunt complet compatibile cu Dunko vRP, vRP standard si vRPex. Nu necesita framework-uri grele si functioneaza standalone pe FiveM build 2699+.'
+  },
+  {
+    keywords: ['salut', 'buna', 'servus', 'hei', 'ajutor', 'help'],
+    answer: 'Salut. Cu ce te pot ajuta legat de FiveM vRP sau resursele de pe Sponex Hub? Poti intreba despre instalare, configurare banking sau optimizari server.'
+  },
+  {
+    keywords: ['discord', 'contact', 'staff', 'owner', 'marius'],
+    answer: 'Poti lua legatura direct cu dezvoltatorul pe serverul de Discord al comunitatii sau lasand un mesaj direct aici in chat.'
   }
+];
+
+function getApiKey(): string {
   const envKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (envKey) return envKey;
-  // Runtime decoded key provided by owner
   const b64 = 'QVEuQWI4Uk42S3pWNkthaXY5NV9XNkpIOENwMkxGd2dvUnJmbkZfalV5UHd3V1d6YU9vQ3c=';
-  return atob(b64);
+  try {
+    return atob(b64);
+  } catch {
+    return '';
+  }
 }
 
-const SYSTEM_INSTRUCTION = `Esti Asistentul Tehnic Oficial Sponex vRP Hub pentru comunitatea FiveM Romania.
-Reguli esentiale:
-1. Raspunde scurt, profesionist si tehnic in limba romana.
-2. Ajuti utilizatorii cu: framework-ul Dunko vRP, scriptul Dunko Banking & ATM, comenzi server.cfg (ex: ensure banking), optimizari resmon 0.00ms, baze de date si instalare resurse.
-3. REGULA NON-NEGOCIABILA: NU folosi absolut niciun emoji in raspunsuri. Text curat, direct si profesional.`;
+function matchLocalKnowledge(text: string): string | null {
+  const lower = text.toLowerCase();
+  for (const item of LOCAL_KNOWLEDGE) {
+    if (item.keywords.some(k => lower.includes(k))) {
+      return item.answer;
+    }
+  }
+  return null;
+}
 
-export async function askGeminiAssistant(userPrompt: string): Promise<string> {
+export async function askAssistant(prompt: string): Promise<string> {
+  const cleanPrompt = prompt.trim();
+  if (!cleanPrompt) return 'Cu ce te pot ajuta legat de FiveM?';
+
+  // 1. Try Gemini API
   try {
     const key = getApiKey();
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${SYSTEM_INSTRUCTION}\n\nIntrebare utilizator: "${userPrompt}"\nRaspunsul tau scurt si clar:`
-              }
-            ]
+    if (key) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `Esti asistentul tehnic oficial Sponex vRP Hub FiveM Romania. Raspunde scurt, direct si tehnic in limba romana. FARA NICIUN EMOJI.\n\nIntrebare: "${cleanPrompt}"`
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 200
           }
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 250
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (reply) {
+          return reply.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
         }
-      })
-    });
-
-    if (!response.ok) {
-      console.warn('Gemini API status:', response.status);
-      return 'Pentru asistenta tehnica detaliata sau configurari personalizate de FiveM vRP, te asteptam si pe Discord.';
+      }
     }
-
-    const data = await response.json();
-    const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (!replyText) {
-      return 'Mesajul a fost receptionat. Poti descarca resursele din catalogul Sponex vRP.';
-    }
-
-    return replyText.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
   } catch (err) {
-    console.warn('Failed to call Gemini AI:', err);
-    return 'Mesajul a fost inregistrat in baza de date.';
+    console.warn('Gemini request fallback:', err);
   }
+
+  // 2. Intelligent Built-in Fallback Engine
+  const localMatch = matchLocalKnowledge(cleanPrompt);
+  if (localMatch) {
+    return localMatch;
+  }
+
+  return 'Resursa este disponibila pentru descarcare gratuita pe Sponex Hub. Pentru detalii specifice de configurare server.cfg sau baze de date, lasa un mesaj detaliat.';
 }
