@@ -21,10 +21,14 @@ export const supabase = isSupabaseConfigured
 export async function signInWithDiscord(): Promise<{ error?: string }> {
   if (!supabase) return { error: 'Supabase indisponibil' };
   try {
+    const redirectUrl = window.location.origin.includes('localhost')
+      ? window.location.origin
+      : 'https://sponex-hub.github.io';
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: redirectUrl
       }
     });
     if (error) return { error: error.message };
