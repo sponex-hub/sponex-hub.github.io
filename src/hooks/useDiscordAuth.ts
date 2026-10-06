@@ -197,6 +197,19 @@ export function useDiscordAuth() {
     return profile;
   };
 
+  const updateProfile = (updates: Partial<DiscordProfile>): DiscordProfile | null => {
+    if (!user) return null;
+    const updated: DiscordProfile = {
+      ...user,
+      ...updates
+    };
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {}
+    setUser(updated);
+    return updated;
+  };
+
   const logout = async () => {
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -211,8 +224,10 @@ export function useDiscordAuth() {
     oauthError,
     loginWithOAuth,
     loginDirectly,
+    updateProfile,
     logout
   };
 }
+
 
 

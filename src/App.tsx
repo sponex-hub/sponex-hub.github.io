@@ -30,7 +30,7 @@ export const App: React.FC = () => {
     message: ''
   });
 
-  const { user: currentUser, oauthError, loginWithOAuth, loginDirectly, logout: logoutDiscord } = useDiscordAuth();
+  const { user: currentUser, oauthError, loginWithOAuth, loginDirectly, updateProfile, logout: logoutDiscord } = useDiscordAuth();
 
   const loadData = async () => {
     try {
@@ -227,8 +227,17 @@ export const App: React.FC = () => {
           setIsEditModalOpen(true);
         }}
         onScriptDeleted={handleScriptDeleted}
+        onUpdateProfile={(updates) => {
+          updateProfile(updates);
+          setToast({
+            visible: true,
+            title: 'Profil Actualizat',
+            message: 'Datele profilului tău au fost actualizate.'
+          });
+        }}
         onLogout={logoutDiscord}
       />
+
 
       {/* DMCA & Legal Disclaimer Modal */}
       <DmcaModal

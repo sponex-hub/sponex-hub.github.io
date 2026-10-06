@@ -78,10 +78,14 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
           {/* Discord Profile Status or Login */}
           {currentUser ? (
             <>
-              <div className="flex items-center gap-2 bg-[#121215] border border-white/[0.12] pl-2 pr-1.5 py-1 rounded-xl text-xs shadow-sm">
-                <div className="flex items-center gap-2 p-1 text-left">
+              <div className="flex items-center gap-1.5 bg-[#121215] border border-white/[0.12] hover:border-white/30 pl-2 pr-1.5 py-1 rounded-xl text-xs shadow-sm transition-colors">
+                <button
+                  onClick={onOpenLibrary}
+                  title="Deschide Profilul & Scripturile Mele"
+                  className="flex items-center gap-2 p-1 text-left cursor-pointer hover:opacity-85 transition-opacity"
+                >
                   {currentUser.avatarUrl ? (
-                    <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-5 h-5 rounded-full object-cover" />
+                    <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-5 h-5 rounded-full object-cover border border-white/20" />
                   ) : (
                     <div className="w-5 h-5 rounded-full bg-[#5865F2] flex items-center justify-center text-[10px] text-white font-bold">
                       {currentUser.name.charAt(0).toUpperCase()}
@@ -90,7 +94,7 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
                   <span className="text-zinc-200 font-semibold truncate max-w-[110px]">
                     {currentUser.name}
                   </span>
-                </div>
+                </button>
 
                 <button
                   onClick={onLogoutDiscord}
@@ -100,6 +104,7 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
                   <LogOut className="w-3 h-3" />
                 </button>
               </div>
+
 
               {/* Dedicated "Postările Tale" Button */}
               <button
