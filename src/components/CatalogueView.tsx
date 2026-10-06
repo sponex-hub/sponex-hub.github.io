@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Download, Box, Plus, LogOut, FolderKanban } from 'lucide-react';
+import { Users, Download, Box, Plus, LogOut } from 'lucide-react';
 import type { FiveMScript } from '../types/script';
 import { ScriptCard } from './ScriptCard';
 import { useRealtimePresence } from '../hooks/useRealtimePresence';
@@ -106,15 +106,6 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
               </div>
 
 
-              {/* Dedicated "Postările Tale" Button */}
-              <button
-                onClick={onOpenLibrary}
-                className="flex items-center gap-1.5 bg-[#16161c] hover:bg-[#202028] text-white border border-white/15 px-3.5 py-2 rounded-xl text-xs font-['Montserrat'] font-bold transition-all cursor-pointer shadow-sm active:scale-95"
-              >
-                <FolderKanban className="w-3.5 h-3.5 text-amber-400" />
-                <span>POSTĂRILE TALE</span>
-              </button>
-
               {/* Upload Script Trigger Button */}
               <button
                 onClick={onOpenAddScript}
@@ -124,6 +115,7 @@ export const CatalogueView: React.FC<CatalogueViewProps> = ({
                 <span>Publică Script</span>
               </button>
             </>
+
           ) : (
             <button
               onClick={onLoginDiscord}
