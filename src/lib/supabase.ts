@@ -351,3 +351,28 @@ export async function createScript(script: Partial<FiveMScript>): Promise<{ succ
     return { success: false, error: err.message || 'Eroare necunoscută' };
   }
 }
+
+/**
+ * Delete a vRP script from Supabase database
+ */
+export async function deleteScript(scriptId: string): Promise<{ success: boolean; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase nu este conectat' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('scripts')
+      .delete()
+      .eq('id', scriptId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Eroare la ștergere' };
+  }
+}
+

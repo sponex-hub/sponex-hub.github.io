@@ -3,6 +3,8 @@ import { CatalogueView } from './components/CatalogueView';
 import { Footer } from './components/Footer';
 import { ScriptModal } from './components/ScriptModal';
 import { AddScriptModal } from './components/AddScriptModal';
+import { DiscordLoginModal } from './components/DiscordLoginModal';
+import { UserLibraryModal } from './components/UserLibraryModal';
 import { DmcaModal } from './components/DmcaModal';
 import { Toast } from './components/Toast';
 import { supabase, getScripts } from './lib/supabase';
@@ -17,13 +19,15 @@ export const App: React.FC = () => {
   const [selectedScript, setSelectedScript] = useState<FiveMScript | null>(null);
   const [isDmcaOpen, setIsDmcaOpen] = useState<boolean>(false);
   const [isAddScriptOpen, setIsAddScriptOpen] = useState<boolean>(false);
+  const [isDiscordLoginOpen, setIsDiscordLoginOpen] = useState<boolean>(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<{ visible: boolean; title: string; message: string }>({
     visible: false,
     title: '',
     message: ''
   });
 
-  const { user: currentUser, loginWithDiscord, logout: logoutDiscord } = useDiscordAuth();
+  const { user: currentUser, loginWithOAuth, loginDirectly, logout: logoutDiscord } = useDiscordAuth();
 
   const loadData = async () => {
     try {
@@ -96,6 +100,16 @@ export const App: React.FC = () => {
           });
         }
       })
+      .on('broadcast', { event: 'script_deleted' }, ({ payload }) => {
+        if (payload && payload.id) {
+          setScripts(prev => prev.filter(s => s.id !== payload.id));
+          setToast({
+            visible: true,
+            title: 'Actualizare Hub',
+            message: 'Un script a fost șters din baza de date.'
+          });
+        }
+      })
       .subscribe();
 
     return () => {
@@ -128,6 +142,15 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleScriptDeleted = (deletedId: string) => {
+    setScripts(prev => prev.filter(s => s.id !== deletedId));
+    setToast({
+      visible: true,
+      title: 'Script Șters',
+      message: 'Resursa a fost ștearsă cu succes din Hub și baza de date.'
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#09090b] text-[#f4f4f5] selection:bg-white selection:text-black">
       {/* Main Content Showcase */}
@@ -145,8 +168,9 @@ export const App: React.FC = () => {
             onSecurityAlert={handleSecurityAlert}
             onOpenAddScript={() => setIsAddScriptOpen(true)}
             currentUser={currentUser}
-            onLoginDiscord={loginWithDiscord}
+            onLoginDiscord={() => setIsDiscordLoginOpen(true)}
             onLogoutDiscord={logoutDiscord}
+            onOpenLibrary={() => setIsLibraryOpen(true)}
           />
         )}
       </main>
@@ -160,13 +184,33 @@ export const App: React.FC = () => {
         onClose={() => setSelectedScript(null)}
       />
 
-      {/* Add Script Modal (Protected with Discord OAuth) */}
+      {/* Add Script Modal (Protected with Discord) */}
       <AddScriptModal
         isOpen={isAddScriptOpen}
         onClose={() => setIsAddScriptOpen(false)}
         onScriptAdded={handleScriptAdded}
         currentUser={currentUser}
-        onRequireLogin={loginWithDiscord}
+        onRequireLogin={() => setIsDiscordLoginOpen(true)}
+      />
+
+      {/* Discord Login / Connect Modal */}
+      <DiscordLoginModal
+        isOpen={isDiscordLoginOpen}
+        onClose={() => setIsDiscordLoginOpen(false)}
+        onOAuthLogin={loginWithOAuth}
+        onDirectLogin={(username, avatarUrl) => loginDirectly(username, avatarUrl)}
+      />
+
+      {/* User Library & Script Management Modal */}
+      <UserLibraryModal
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        currentUser={currentUser}
+        scripts={scripts}
+        onOpenDetails={(script) => setSelectedScript(script)}
+        onOpenAddScript={() => setIsAddScriptOpen(true)}
+        onScriptDeleted={handleScriptDeleted}
+        onLogout={logoutDiscord}
       />
 
       {/* DMCA & Legal Disclaimer Modal */}
