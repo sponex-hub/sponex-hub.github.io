@@ -56,18 +56,70 @@ export function useDiscordAuth() {
   }, []);
 
   useEffect(() => {
-    // 1. Check for OAuth error in URL hash or search
-    const hash = window.location.hash;
-    const search = window.location.search;
-    if (hash.includes('error=') || search.includes('error=')) {
-      const urlParams = new URLSearchParams(search);
-      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
-      const errorMsg = urlParams.get('error_description') || hashParams.get('error_description') || urlParams.get('error') || hashParams.get('error');
-      if (errorMsg) {
-        console.warn('OAuth URL Error:', errorMsg);
-        setOauthError(decodeURIComponent(errorMsg.replace(/\+/g, ' ')));
+    // 1. Check for direct Discord OAuth access_token in URL hash
+    const handleDirectDiscordToken = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token=')) {
+        try {
+          const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+          const token = hashParams.get('access_token');
+          const tokenType = hashParams.get('token_type') || 'Bearer';
+
+          if (token) {
+            const res = await fetch('https://discord.com/api/users/@me', {
+              headers: {
+                Authorization: `${tokenType} ${token}`
+              }
+            });
+
+            if (res.ok) {
+              const dUser = await res.json();
+              if (dUser && dUser.id) {
+                const name = dUser.global_name || dUser.username || 'Discord User';
+                let avatar = '';
+                if (dUser.avatar) {
+                  avatar = `https://cdn.discordapp.com/avatars/${dUser.id}/${dUser.avatar}.png`;
+                } else {
+                  avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`;
+                }
+
+                const profile: DiscordProfile = {
+                  id: dUser.id,
+                  name: name,
+                  avatarUrl: avatar,
+                  email: dUser.email,
+                  isDirect: false
+                };
+
+                setUser(profile);
+                try {
+                  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
+                } catch (e) {}
+                setOauthError(null);
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to parse direct Discord token:', err);
+        }
       }
-    }
+
+      // Check for OAuth error in URL hash or search
+      const search = window.location.search;
+      if (hash.includes('error=') || search.includes('error=')) {
+        const urlParams = new URLSearchParams(search);
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+        const errorMsg = urlParams.get('error_description') || hashParams.get('error_description') || urlParams.get('error') || hashParams.get('error');
+        if (errorMsg) {
+          console.warn('OAuth URL Error:', errorMsg);
+          setOauthError(decodeURIComponent(errorMsg.replace(/\+/g, ' ')));
+        }
+      }
+    };
+
+    handleDirectDiscordToken();
 
     if (!supabase) {
       setLoading(false);

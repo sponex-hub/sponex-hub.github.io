@@ -22,29 +22,26 @@ export const supabase = isSupabaseConfigured
   : null;
 
 /**
- * Discord OAuth Login via Supabase Auth
+ * Discord OAuth Login via Discord Developer Portal Implicit Flow
  */
 export async function signInWithDiscord(): Promise<{ error?: string }> {
-  if (!supabase) return { error: 'Supabase indisponibil' };
   try {
-    const redirectUrl = window.location.origin + window.location.pathname;
+    const clientId = '1357141985653948567';
+    const origin = window.location.origin;
+    const path = window.location.pathname.endsWith('/') ? window.location.pathname : `${window.location.pathname}/`;
+    const cleanUrl = `${origin}${path}`;
+    const redirectUri = encodeURIComponent(cleanUrl);
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        redirectTo: redirectUrl,
-        scopes: 'identify email'
-      }
-    });
-    if (error) return { error: error.message };
-    if (data?.url) {
-      window.location.href = data.url;
-    }
+    // Direct Discord OAuth2 URL
+    const discordUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=identify%20email`;
+
+    window.location.href = discordUrl;
     return {};
   } catch (err: any) {
-    return { error: err.message || 'Eroare la autentificare Discord' };
+    return { error: err.message || 'Eroare la redirecționare Discord' };
   }
 }
+
 
 /**
  * Sign out current user
