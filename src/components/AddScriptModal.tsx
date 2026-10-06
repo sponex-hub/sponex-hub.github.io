@@ -126,16 +126,17 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
         }
       }
 
-      const scriptSlug = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      const baseSlug = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'script';
+      const uniqueScriptId = `${baseSlug}_${Date.now().toString(36)}`;
       const finalCategory = customCategory.trim() ? customCategory.trim().toLowerCase() : category;
-      const finalCfg = cfgCommand.trim() || `ensure ${scriptSlug}`;
+      const finalCfg = cfgCommand.trim() || `ensure ${baseSlug}`;
 
       const fullDescription = howItWorks.trim() 
         ? `${description.trim()}\n\nInstrucțiuni: ${howItWorks.trim()}`
         : description.trim();
 
       const newScript: FiveMScript = {
-        id: scriptSlug,
+        id: uniqueScriptId,
         title: title.trim(),
         category: finalCategory,
         frameworks: ['vRP'],

@@ -102,20 +102,16 @@ export async function getScripts(): Promise<FiveMScript[]> {
       return SCRIPTS_DATA;
     }
 
-    // Strictly filter only real FiveM script cards
+    // Filter real FiveM script cards from Supabase
     const validScriptRows = data.filter((item: any) => {
       if (!item.id || typeof item.id !== 'string') return false;
       if (item.id.startsWith('rev_') || item.id.startsWith('chat_')) return false;
       if (item.category === 'chat_message' || item.category === 'review') return false;
-      // Must have a real script download or description
-      return item.download_url && item.download_url.endsWith('.zip');
+      // Must have title and download URL or valid resource content
+      return Boolean(item.title && (item.download_url || item.description));
     });
 
-    if (validScriptRows.length === 0) {
-      return SCRIPTS_DATA;
-    }
-
-    return validScriptRows.map((item: any) => ({
+    const parsedSupabaseScripts: FiveMScript[] = validScriptRows.map((item: any) => ({
       id: item.id || item.slug,
       title: item.title,
       category: item.category || 'systems',
@@ -135,6 +131,15 @@ export async function getScripts(): Promise<FiveMScript[]> {
         ? Number(item.downloads) 
         : Number(String(item.github_url || '').replace('downloads:', '') || 0)
     }));
+
+    // Merge Supabase scripts (newest first) with default catalogue without ID collisions
+    const dbIds = new Set(parsedSupabaseScripts.map(s => s.id.toLowerCase()));
+    const mergedList = [
+      ...parsedSupabaseScripts,
+      ...SCRIPTS_DATA.filter(s => !dbIds.has(s.id.toLowerCase()))
+    ];
+
+    return mergedList;
   } catch (err) {
     console.error('Failed to query Supabase:', err);
     return SCRIPTS_DATA;
