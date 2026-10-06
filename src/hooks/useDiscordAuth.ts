@@ -44,7 +44,56 @@ export function useDiscordAuth() {
       return;
     }
 
-    // 1. Listen to auth changes first (captures SIGNED_IN from URL hash immediately)
+    // Handle initial state and URL returns
+    const initAuth = async () => {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // 1. If returning from OAuth redirect with code / hash
+        if (window.location.search.includes('code=') || window.location.hash.includes('access_token=')) {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (session?.user && !error) {
+            const profile = mapSupabaseUser(session.user);
+            setUser(profile);
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
+            // Clean URL query/hash without page reload
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // 2. Check active Supabase session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const profile = mapSupabaseUser(session.user);
+          setUser(profile);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
+          setLoading(false);
+          return;
+        }
+
+        // 3. Fallback to locally stored session if any
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.name) {
+            setUser(parsed);
+          }
+        }
+      } catch (err) {
+        console.warn('Auth init error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // 4. Listen to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         const profile = mapSupabaseUser(session.user);
@@ -56,29 +105,6 @@ export function useDiscordAuth() {
         setUser(null);
         try {
           localStorage.removeItem(LOCAL_STORAGE_KEY);
-        } catch (e) {}
-      }
-      setLoading(false);
-    });
-
-    // 2. Get Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const profile = mapSupabaseUser(session.user);
-        setUser(profile);
-        try {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(profile));
-        } catch (e) {}
-      } else {
-        // Fallback to local stored session if any
-        try {
-          const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed && parsed.name) {
-              setUser(parsed);
-            }
-          }
         } catch (e) {}
       }
       setLoading(false);

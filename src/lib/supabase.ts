@@ -16,8 +16,7 @@ export const supabase = isSupabaseConfigured
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true,
-        flowType: 'implicit'
+        detectSessionInUrl: true
       }
     })
   : null;
@@ -28,17 +27,19 @@ export const supabase = isSupabaseConfigured
 export async function signInWithDiscord(): Promise<{ error?: string }> {
   if (!supabase) return { error: 'Supabase indisponibil' };
   try {
-    const redirectUrl = window.location.origin.includes('localhost')
-      ? window.location.origin
-      : 'https://sponex-hub.github.io';
+    const redirectUrl = window.location.origin + window.location.pathname;
 
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: redirectUrl
+        redirectTo: redirectUrl,
+        scopes: 'identify email'
       }
     });
     if (error) return { error: error.message };
+    if (data?.url) {
+      window.location.href = data.url;
+    }
     return {};
   } catch (err: any) {
     return { error: err.message || 'Eroare la autentificare Discord' };
