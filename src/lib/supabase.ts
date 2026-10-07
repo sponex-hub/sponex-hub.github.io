@@ -68,7 +68,7 @@ export async function uploadToStorage(
   }
 
   try {
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split('.').pop() || 'zip';
     const cleanFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
     const filePath = `${cleanFileName}`;
 
@@ -80,6 +80,15 @@ export async function uploadToStorage(
       });
 
     if (uploadError) {
+      if (
+        uploadError.message?.toLowerCase().includes('exceeded') ||
+        uploadError.message?.toLowerCase().includes('size') ||
+        uploadError.message?.toLowerCase().includes('payload')
+      ) {
+        return { 
+          error: 'Fișierul depășește limita Supabase Storage. Te rugăm să folosești opțiunea "Link Extern de Descărcare" (Google Drive, Mega, MediaFire, GitHub).' 
+        };
+      }
       return { error: uploadError.message };
     }
 

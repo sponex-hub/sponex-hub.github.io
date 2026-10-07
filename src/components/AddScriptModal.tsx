@@ -10,7 +10,9 @@ import {
   FolderPlus, 
   Tag, 
   FileText,
-  AlertCircle
+  AlertCircle,
+  Link as LinkIcon,
+  Globe
 } from 'lucide-react';
 import { createScript, uploadToStorage, supabase } from '../lib/supabase';
 import type { FiveMScript } from '../types/script';
@@ -39,6 +41,14 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
   const [howItWorks, setHowItWorks] = useState('');
   const [cfgCommand, setCfgCommand] = useState('');
 
+  // Dual download source: File upload or External Link
+  const [downloadMethod, setDownloadMethod] = useState<'file' | 'link'>('file');
+  const [externalDownloadUrl, setExternalDownloadUrl] = useState('');
+
+  // Dual image source: File upload or External URL
+  const [imageMethod, setImageMethod] = useState<'file' | 'link'>('file');
+  const [externalImageUrl, setExternalImageUrl] = useState('');
+
   // Files & Drag State
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [imgFile, setImgFile] = useState<File | null>(null);
@@ -47,6 +57,7 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
 
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSizeExceeded, setIsSizeExceeded] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const zipInputRef = useRef<HTMLInputElement>(null);
@@ -101,35 +112,59 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setIsSizeExceeded(false);
 
     if (!title.trim()) {
       setErrorMsg('Te rugăm să introduci numele resursei.');
       return;
     }
 
-    if (!zipFile) {
+    if (downloadMethod === 'file' && !zipFile && !externalDownloadUrl.trim()) {
       setErrorMsg('Te rugăm să atașezi fișierul arhivă .zip al scriptului.');
+      return;
+    }
+
+    if (downloadMethod === 'link' && !externalDownloadUrl.trim()) {
+      setErrorMsg('Te rugăm să introduci linkul de descărcare (Google Drive, Mega, MediaFire, GitHub etc.).');
       return;
     }
 
     setUploading(true);
 
     try {
-      // 1. Upload .zip file to Supabase Storage
-      const zipRes = await uploadToStorage('scripts', zipFile);
-      if (zipRes.error || !zipRes.url) {
-        setErrorMsg(`Eroare la încărcarea fișierului .zip: ${zipRes.error || 'Necunoscută'}`);
-        setUploading(false);
-        return;
+      let finalDownloadUrl = '';
+
+      // 1. Handle .ZIP Download Source
+      if (downloadMethod === 'file' && zipFile) {
+        const zipRes = await uploadToStorage('scripts', zipFile);
+        if (zipRes.error || !zipRes.url) {
+          if (
+            zipRes.error?.toLowerCase().includes('exceeded') || 
+            zipRes.error?.toLowerCase().includes('limita') ||
+            zipRes.error?.toLowerCase().includes('size')
+          ) {
+            setIsSizeExceeded(true);
+            setErrorMsg('Fișierul depășește limita Supabase Storage. Introdu linkul extern mai jos pentru a continua.');
+          } else {
+            setErrorMsg(`Eroare la încărcarea fișierului .zip: ${zipRes.error || 'Necunoscută'}`);
+          }
+          setUploading(false);
+          return;
+        }
+        finalDownloadUrl = zipRes.url;
+      } else {
+        finalDownloadUrl = externalDownloadUrl.trim();
       }
 
-      // 2. Upload screenshot to Supabase Storage (if provided)
+      // 2. Handle Image Preview Source
       let finalImageUrl = '';
-      if (imgFile) {
+      if (imageMethod === 'file' && imgFile) {
         const imgRes = await uploadToStorage('images', imgFile);
         if (imgRes.url) {
           finalImageUrl = imgRes.url;
         }
+      } else if (imageMethod === 'link' && externalImageUrl.trim()) {
+        finalImageUrl = externalImageUrl.trim();
       }
 
       const baseSlug = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'script';
@@ -155,7 +190,7 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
         features: [],
         dependencies: ['vrp'],
         cfgCommand: finalCfg,
-        downloadUrl: zipRes.url,
+        downloadUrl: finalDownloadUrl,
         githubUrl: `author:${currentUser.id}`
       };
 
@@ -321,116 +356,242 @@ export const AddScriptModal: React.FC<AddScriptModalProps> = ({
               </div>
             </div>
 
-            {/* 3. Drag & Drop Fișier Script (.zip) */}
-            <div>
-              <label className="text-[10px] font-bold text-zinc-400 block mb-1.5 uppercase font-mono tracking-wider flex items-center gap-1">
-                <FileArchive className="w-3 h-3 text-zinc-400" />
-                <span>Arhivă Script (.zip) *</span>
-              </label>
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDraggingZip(true);
-                }}
-                onDragLeave={() => setIsDraggingZip(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDraggingZip(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    const f = e.dataTransfer.files[0];
-                    if (f.name.endsWith('.zip') || f.name.endsWith('.rar') || f.name.endsWith('.7z')) {
-                      setZipFile(f);
-                    } else {
-                      setErrorMsg('Te rugăm să încarci doar arhive .zip sau .rar.');
-                    }
-                  }
-                }}
-                onClick={() => zipInputRef.current?.click()}
-                className={`border border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${
-                  isDraggingZip || zipFile
-                    ? 'border-white/40 bg-white/[0.04]'
-                    : 'border-white/15 bg-black/40 hover:border-white/30'
-                }`}
-              >
-                <input
-                  ref={zipInputRef}
-                  type="file"
-                  accept=".zip,.rar,.7z"
-                  onChange={(e) => setZipFile(e.target.files ? e.target.files[0] : null)}
-                  className="hidden"
-                />
-                {zipFile ? (
-                  <div className="flex items-center justify-center gap-2 text-white font-medium">
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    <span>{zipFile.name}</span>
-                    <span className="text-zinc-500 font-mono text-[10px]">
-                      ({(zipFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <UploadCloud className="w-5 h-5 text-zinc-400" />
-                    <span className="text-zinc-300 font-medium">
-                      Trage fișierul <strong className="text-white">.zip</strong> aici sau click pentru a alege
-                    </span>
-                    <span className="text-[10px] text-zinc-500 font-mono">
-                      Maxim 50MB • Direct în Supabase Storage
-                    </span>
-                  </div>
-                )}
+            {/* Size Exceeded Quick Recovery Banner */}
+            {isSizeExceeded && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-2.5 animate-fade-in">
+                <div className="flex items-center gap-2 text-amber-300 font-semibold text-xs">
+                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Fișierul depășește limita Supabase Storage</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  Pentru resurse mari (peste 50MB), introdu un link extern de descărcare (Google Drive, Mega.nz, MediaFire, GitHub etc.):
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    value={externalDownloadUrl}
+                    onChange={(e) => {
+                      setExternalDownloadUrl(e.target.value);
+                      setDownloadMethod('link');
+                    }}
+                    placeholder="https://mega.nz/... sau https://drive.google.com/..."
+                    className="flex-1 bg-black/80 border border-amber-500/30 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-amber-400 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDownloadMethod('link')}
+                    className="bg-amber-500 hover:bg-amber-400 text-black px-3 py-2 rounded-xl text-xs font-bold font-['Montserrat'] cursor-pointer transition-colors"
+                  >
+                    Folosește Link
+                  </button>
+                </div>
               </div>
+            )}
+
+            {/* 3. Metodă Descărcare (Fișier .ZIP sau Link Extern) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase font-mono tracking-wider flex items-center gap-1">
+                  <FileArchive className="w-3 h-3 text-zinc-400" />
+                  <span>Sursă Descărcare Script *</span>
+                </label>
+
+                {/* Toggle Mode */}
+                <div className="flex items-center bg-black/60 border border-white/10 rounded-lg p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setDownloadMethod('file')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-['Montserrat'] font-bold transition-all cursor-pointer ${
+                      downloadMethod === 'file'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Fișier .ZIP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDownloadMethod('link')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-['Montserrat'] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      downloadMethod === 'link'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <LinkIcon className="w-2.5 h-2.5" />
+                    <span>Link Extern</span>
+                  </button>
+                </div>
+              </div>
+
+              {downloadMethod === 'file' ? (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingZip(true);
+                  }}
+                  onDragLeave={() => setIsDraggingZip(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingZip(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      const f = e.dataTransfer.files[0];
+                      if (f.name.endsWith('.zip') || f.name.endsWith('.rar') || f.name.endsWith('.7z')) {
+                        setZipFile(f);
+                        setIsSizeExceeded(false);
+                      } else {
+                        setErrorMsg('Te rugăm să încarci doar arhive .zip sau .rar.');
+                      }
+                    }
+                  }}
+                  onClick={() => zipInputRef.current?.click()}
+                  className={`border border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                    isDraggingZip || zipFile
+                      ? 'border-white/40 bg-white/[0.04]'
+                      : 'border-white/15 bg-black/40 hover:border-white/30'
+                  }`}
+                >
+                  <input
+                    ref={zipInputRef}
+                    type="file"
+                    accept=".zip,.rar,.7z"
+                    onChange={(e) => {
+                      setZipFile(e.target.files ? e.target.files[0] : null);
+                      setIsSizeExceeded(false);
+                    }}
+                    className="hidden"
+                  />
+                  {zipFile ? (
+                    <div className="flex items-center justify-center gap-2 text-white font-medium">
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span>{zipFile.name}</span>
+                      <span className="text-zinc-500 font-mono text-[10px]">
+                        ({(zipFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <UploadCloud className="w-5 h-5 text-zinc-400" />
+                      <span className="text-zinc-300 font-medium">
+                        Trage fișierul <strong className="text-white">.zip</strong> aici sau click pentru a alege
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        Pentru fișiere mari poți folosi opțiunea "Link Extern" (Google Drive, Mega, etc.)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="relative">
+                    <LinkIcon className="w-3.5 h-3.5 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="url"
+                      value={externalDownloadUrl}
+                      onChange={(e) => setExternalDownloadUrl(e.target.value)}
+                      placeholder="Ex: https://mega.nz/file/... sau https://drive.google.com/..."
+                      required={downloadMethod === 'link'}
+                      className="w-full bg-black/60 border border-white/10 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-white/30 transition-colors font-mono"
+                    />
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-mono mt-1 block">
+                    Acceptă orice link de descărcare directă (Mega, MediaFire, Google Drive, GitHub Releases etc.)
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* 4. Drag & Drop Poză / Screenshot Preview */}
-            <div>
-              <label className="text-[10px] font-bold text-zinc-400 block mb-1.5 uppercase font-mono tracking-wider flex items-center gap-1">
-                <ImageIcon className="w-3 h-3 text-zinc-400" />
-                <span>Poză / Screenshot Previzualizare (Opțional)</span>
-              </label>
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDraggingImg(true);
-                }}
-                onDragLeave={() => setIsDraggingImg(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDraggingImg(false);
-                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    setImgFile(e.dataTransfer.files[0]);
-                  }
-                }}
-                onClick={() => imgInputRef.current?.click()}
-                className={`border border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${
-                  isDraggingImg || imgFile
-                    ? 'border-white/40 bg-white/[0.04]'
-                    : 'border-white/15 bg-black/40 hover:border-white/30'
-                }`}
-              >
-                <input
-                  ref={imgInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setImgFile(e.target.files ? e.target.files[0] : null)}
-                  className="hidden"
-                />
-                {imgFile ? (
-                  <div className="flex items-center justify-center gap-2 text-white font-medium">
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    <span>{imgFile.name}</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <ImageIcon className="w-5 h-5 text-zinc-400" />
-                    <span className="text-zinc-300 font-medium">
-                      Trage o imagine (PNG / JPG / WebP) aici
-                    </span>
-                    <span className="text-[10px] text-zinc-500 font-mono">
-                      Format recomandat 16:9
-                    </span>
-                  </div>
-                )}
+            {/* 4. Previzualizare Imagine (Fișier sau URL) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase font-mono tracking-wider flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3 text-zinc-400" />
+                  <span>Poză / Screenshot (Opțional)</span>
+                </label>
+
+                <div className="flex items-center bg-black/60 border border-white/10 rounded-lg p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setImageMethod('file')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-['Montserrat'] font-bold transition-all cursor-pointer ${
+                      imageMethod === 'file'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Imagine Fișier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageMethod('link')}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-['Montserrat'] font-bold transition-all cursor-pointer ${
+                      imageMethod === 'link'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Link Imagine
+                  </button>
+                </div>
               </div>
+
+              {imageMethod === 'file' ? (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingImg(true);
+                  }}
+                  onDragLeave={() => setIsDraggingImg(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingImg(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      setImgFile(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  onClick={() => imgInputRef.current?.click()}
+                  className={`border border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                    isDraggingImg || imgFile
+                      ? 'border-white/40 bg-white/[0.04]'
+                      : 'border-white/15 bg-black/40 hover:border-white/30'
+                  }`}
+                >
+                  <input
+                    ref={imgInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImgFile(e.target.files ? e.target.files[0] : null)}
+                    className="hidden"
+                  />
+                  {imgFile ? (
+                    <div className="flex items-center justify-center gap-2 text-white font-medium">
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span>{imgFile.name}</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <ImageIcon className="w-5 h-5 text-zinc-400" />
+                      <span className="text-zinc-300 font-medium">
+                        Trage o imagine (PNG / JPG / WebP) aici
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        Format recomandat 16:9
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="relative">
+                  <Globe className="w-3.5 h-3.5 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="url"
+                    value={externalImageUrl}
+                    onChange={(e) => setExternalImageUrl(e.target.value)}
+                    placeholder="https://i.imgur.com/... sau https://..."
+                    className="w-full bg-black/60 border border-white/10 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder:text-zinc-600 outline-none focus:border-white/30 transition-colors font-mono"
+                  />
+                </div>
+              )}
             </div>
 
             {/* 5. Descriere */}
