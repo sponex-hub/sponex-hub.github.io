@@ -22,6 +22,8 @@ import {
 import type { FiveMScript } from '../types/script';
 import type { DiscordProfile } from '../hooks/useDiscordAuth';
 import { deleteScript, supabase } from '../lib/supabase';
+import { useTranslation } from '../lib/i18n';
+import { LanguageSelector } from './LanguageSelector';
 
 interface ProfileViewProps {
   currentUser: DiscordProfile | null;
@@ -51,6 +53,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onUpdateProfile,
   onLogout
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'scripts' | 'settings'>('scripts');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -103,30 +106,35 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       .subscribe();
 
     return () => {
-      if (supabase) {
-        supabase.removeChannel(channel);
-      }
+      if (supabase) supabase.removeChannel(channel);
     };
   }, []);
 
-  // Determine if viewing own profile or another creator's profile
-  const isViewingTarget = Boolean(targetAuthor && targetAuthor.trim());
-  const isOwnProfile = !isViewingTarget || (
-    Boolean(currentUser?.name) &&
-    Boolean(targetAuthor) &&
-    (
-      currentUser!.name.toLowerCase().trim() === targetAuthor!.toLowerCase().trim() ||
-      (currentUser!.name.toLowerCase().startsWith('spone') && targetAuthor!.toLowerCase().startsWith('spone'))
-    )
-  );
+  // Determine if viewing own profile vs someone else
+  const isOwnProfile = !targetAuthor || (currentUser && (
+    targetAuthor.toLowerCase() === currentUser.name.toLowerCase() ||
+    ((currentUser.name.toLowerCase().startsWith('spone') || currentUser.name.toLowerCase().includes('sponex')) &&
+     (targetAuthor.toLowerCase().startsWith('spone') || targetAuthor.toLowerCase().includes('sponex')))
+  ));
 
-  const authorDisplayName = isOwnProfile 
-    ? (currentUser?.name || 'Creator Profil')
-    : (targetAuthor || 'Creator');
+  // Determine author display name
+  const rawDisplayName = targetAuthor 
+    ? targetAuthor 
+    : (currentUser ? currentUser.name : 'Sponex Community');
 
-  const authorKey = authorDisplayName.toLowerCase().trim();
+  const authorDisplayName = (() => {
+    const lower = rawDisplayName.toLowerCase().trim();
+    if (lower.startsWith('spone') || lower === 'sponex' || lower === 'sponev3') {
+      return 'Sponex';
+    }
+    return rawDisplayName;
+  })();
+
+  const authorKey = authorDisplayName.toLowerCase();
+
+  // Active follow status and count
   const isFollowing = followingList.includes(authorKey);
-  const currentFollowers = Math.max(0, followCounts[authorKey] !== undefined ? followCounts[authorKey] : (isFollowing ? 1 : 0));
+  const currentFollowers = followCounts[authorKey] || 0;
 
   const toggleFollow = () => {
     let nextList: string[];
@@ -216,10 +224,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           } catch (e) {}
         }
       } else {
-        alert(`Eroare la ștergerea scriptului: ${res.error || 'Necunoscută'}`);
+        alert(`Error: ${res.error || 'Unknown'}`);
       }
     } catch (err: any) {
-      alert(`Eroare: ${err.message || 'Eroare neașteptată'}`);
+      alert(`Error: ${err.message || 'Unexpected error'}`);
     } finally {
       setDeletingId(null);
     }
@@ -242,17 +250,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   return (
     <div className="space-y-8 select-none animate-fade-in">
-      {/* Top Navigation Bar with Back Action */}
+      {/* Top Navigation Bar with Back Action & Language Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
         <button
           onClick={onBackToCatalogue}
           className="inline-flex items-center gap-2 bg-[#121215] hover:bg-[#18181f] text-zinc-300 hover:text-white border border-white/10 px-4 py-2.5 rounded-xl text-xs font-['Montserrat'] font-bold transition-all cursor-pointer shadow-sm active:scale-95 w-fit"
         >
           <ArrowLeft className="w-4 h-4 text-white" />
-          <span>Înapoi la Catalog</span>
+          <span>{t('backToCatalogue')}</span>
         </button>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <LanguageSelector compact />
+
           {isOwnProfile ? (
             <>
               <button
@@ -260,7 +270,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 className="flex items-center gap-1.5 bg-white hover:bg-zinc-200 text-black px-4 py-2.5 rounded-xl text-xs font-['Montserrat'] font-bold transition-all cursor-pointer shadow-[0_2px_12px_rgba(255,255,255,0.15)] active:scale-95"
               >
                 <Plus className="w-3.5 h-3.5 text-black stroke-[3]" />
-                <span>Publică Script</span>
+                <span>{t('publishScript')}</span>
               </button>
 
               {onLogout && (
@@ -268,7 +278,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   onClick={onLogout}
                   className="flex items-center gap-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer"
                 >
-                  <span>Deconectare</span>
+                  <span>{t('disconnect')}</span>
                 </button>
               )}
             </>
@@ -284,12 +294,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               {isFollowing ? (
                 <>
                   <UserCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Urmărești</span>
+                  <span>{t('following')}</span>
                 </>
               ) : (
                 <>
                   <UserPlus className="w-4 h-4 text-black" />
-                  <span>Urmărește Creatorul</span>
+                  <span>{t('follow')}</span>
                 </>
               )}
             </button>
@@ -329,7 +339,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           <Code2 className="w-3.5 h-3.5 text-cyan-400" />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none bg-[#0c0c0e] border border-white/15 px-2 py-1 rounded-md text-[10px] font-mono text-white whitespace-nowrap shadow-xl z-30">
-                          Asset Creator • {displayedScripts.length} {displayedScripts.length === 1 ? 'script creat' : 'scripturi create'}
+                          Asset Creator • {displayedScripts.length} {displayedScripts.length === 1 ? t('scriptSingle') : t('scripts')}
                         </div>
                       </div>
                     )}
@@ -341,7 +351,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none bg-[#0c0c0e] border border-white/15 px-2 py-1 rounded-md text-[10px] font-mono text-white whitespace-nowrap shadow-xl z-30">
-                          Scripter Verificat vRP
+                          {t('developer')}
                         </div>
                       </div>
                     )}
@@ -353,7 +363,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           <Layers className="w-3.5 h-3.5 text-purple-400" />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none bg-[#0c0c0e] border border-white/15 px-2 py-1 rounded-md text-[10px] font-mono text-white whitespace-nowrap shadow-xl z-30">
-                          Publisher Pro • 3+ Resurse pe Hub
+                          Publisher Pro • 3+ {t('scripts')}
                         </div>
                       </div>
                     )}
@@ -365,7 +375,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           <Flame className="w-3.5 h-3.5 text-amber-400" />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none bg-[#0c0c0e] border border-white/15 px-2 py-1 rounded-md text-[10px] font-mono text-white whitespace-nowrap shadow-xl z-30">
-                          Popularitate • {totalDownloads} descărcări
+                          {totalDownloads} {totalDownloads === 1 ? t('downloadSingle') : t('downloads')}
                         </div>
                       </div>
                     )}
@@ -377,7 +387,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                           <Crown className="w-3.5 h-3.5 text-yellow-400" />
                         </div>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none bg-[#0c0c0e] border border-white/15 px-2 py-1 rounded-md text-[10px] font-mono text-white whitespace-nowrap shadow-xl z-30">
-                          Fondator Sponex Hub
+                          {t('founder')}
                         </div>
                       </div>
                     )}
@@ -386,9 +396,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               </div>
 
               <div className="flex items-center gap-3 text-xs text-zinc-400 font-mono">
-                <span>{currentFollowers} {currentFollowers === 1 ? 'Urmăritor' : 'Urmăritori'}</span>
+                <span>{currentFollowers} {currentFollowers === 1 ? t('followerSingle') : t('followers')}</span>
                 <span>•</span>
-                <span>{displayedScripts.length > 0 ? 'Scripter vRP' : 'Membru Comunitate'}</span>
+                <span>{displayedScripts.length > 0 ? t('developer') : t('member')}</span>
               </div>
             </div>
           </div>
@@ -398,7 +408,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <div className="bg-[#0c0c0e] border border-white/[0.08] rounded-2xl p-4 min-w-[140px]">
               <div className="flex items-center gap-2 text-zinc-400 text-xs mb-1">
                 <Box className="w-3.5 h-3.5 text-white" />
-                <span>Scripturi</span>
+                <span>{t('scripts')}</span>
               </div>
               <div className="text-2xl font-bold text-white font-mono">{displayedScripts.length}</div>
             </div>
@@ -406,7 +416,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <div className="bg-[#0c0c0e] border border-white/[0.08] rounded-2xl p-4 min-w-[140px]">
               <div className="flex items-center gap-2 text-zinc-400 text-xs mb-1">
                 <Download className="w-3.5 h-3.5 text-white" />
-                <span>Descărcări</span>
+                <span>{t('downloads')}</span>
               </div>
               <div className="text-2xl font-bold text-white font-mono">{totalDownloads}</div>
             </div>
@@ -428,7 +438,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               }`}
             >
               <FolderKanban className="w-4 h-4" />
-              <span>Scripturile Mele ({displayedScripts.length})</span>
+              <span>{t('publishedScripts')} ({displayedScripts.length})</span>
             </button>
 
             <button
@@ -440,7 +450,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               }`}
             >
               <User className="w-4 h-4" />
-              <span>Editează Profilul</span>
+              <span>{t('profileSettings')}</span>
             </button>
           </div>
         )}
@@ -450,7 +460,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white font-['Montserrat']">
-                {isOwnProfile ? 'Scripturile Mele Publicate' : `Resursele publicate de ${authorDisplayName}`} ({displayedScripts.length})
+                {isOwnProfile ? t('publishedScripts') : `${t('publishedScripts')} (${authorDisplayName})`} ({displayedScripts.length})
               </h3>
             </div>
 
@@ -461,13 +471,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
                 <div className="max-w-md mx-auto space-y-1">
                   <h3 className="text-base font-bold text-white font-['Montserrat']">
-                    Niciun script publicat momentan
+                    {t('noScriptsInProfile')}
                   </h3>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {isOwnProfile
-                      ? 'Împărtășește resursele și sistemele tale vRP cu întreaga comunitate FiveM.'
-                      : `${authorDisplayName} nu are încă scripturi active listate în catalog.`}
-                  </p>
                 </div>
                 {isOwnProfile && (
                   <button
@@ -475,7 +480,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     className="bg-white hover:bg-zinc-200 text-black text-xs font-bold px-5 py-3 rounded-xl transition-all cursor-pointer inline-flex items-center gap-2 shadow-[0_2px_15px_rgba(255,255,255,0.2)] active:scale-95"
                   >
                     <Plus className="w-4 h-4 text-black stroke-[3]" />
-                    <span>Publică Primul Tău Script</span>
+                    <span>{t('publishScript')}</span>
                   </button>
                 )}
               </div>
@@ -510,13 +515,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         </div>
 
                         <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                          {script.description || 'Fără descriere adăugată.'}
+                          {script.description || 'vRP script.'}
                         </p>
 
                         <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-mono pt-1">
                           <span className="flex items-center gap-1 text-zinc-300">
                             <Download className="w-3 h-3 text-zinc-500" />
-                            {script.downloads || 0} descărcări
+                            {script.downloads || 0} {script.downloads === 1 ? t('downloadSingle') : t('downloads')}
                           </span>
                           <span>•</span>
                           <span>{script.version || 'v1.0.0'}</span>
@@ -531,7 +536,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         className="text-xs text-zinc-400 hover:text-white inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Vezi în Catalog</span>
+                        <span>{t('details')}</span>
                       </button>
 
                       <div className="flex items-center gap-2">
@@ -542,7 +547,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                               className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/25 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
                             >
                               <Pencil className="w-3.5 h-3.5" />
-                              <span>Editează</span>
+                              <span>{t('edit')}</span>
                             </button>
 
                             {confirmDeleteId === script.id ? (
@@ -555,21 +560,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                                   {deletingId === script.id ? (
                                     <Loader2 className="w-3 h-3 animate-spin" />
                                   ) : (
-                                    'Confirmă'
+                                    t('delete')
                                   )}
                                 </button>
                                 <button
                                   onClick={() => setConfirmDeleteId(null)}
                                   className="text-zinc-400 hover:text-white text-[11px] px-2 py-1 cursor-pointer"
                                 >
-                                  Anulează
+                                  {t('close')}
                                 </button>
                               </div>
                             ) : (
                               <button
                                 onClick={() => setConfirmDeleteId(script.id)}
                                 className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-300 transition-colors cursor-pointer"
-                                title="Șterge Scriptul"
+                                title={t('delete')}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -584,7 +589,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                             className="bg-white hover:bg-zinc-200 text-black text-xs font-bold px-3.5 py-1.5 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
                           >
                             <Download className="w-3.5 h-3.5 text-black" />
-                            <span>Descarcă</span>
+                            <span>{t('download')}</span>
                           </a>
                         )}
                       </div>
@@ -600,16 +605,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <form onSubmit={handleSaveProfile} className="space-y-5">
               <div className="space-y-1 mb-4">
                 <h3 className="text-lg font-bold text-white font-['Montserrat']">
-                  Setări Profil
+                  {t('profileSettings')}
                 </h3>
-                <p className="text-xs text-zinc-400">
-                  Personalizează modul în care apari în comunitatea Sponex Hub.
-                </p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2 font-mono">
-                  Nume Afișat / Nickname
+                  {t('username')}
                 </label>
                 <input
                   type="text"
@@ -623,18 +625,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2 font-mono">
-                  Link Poză de Profil (Avatar URL)
+                  {t('avatarUrl')}
                 </label>
                 <input
                   type="url"
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="Ex: https://i.imgur.com/... sau link de Discord avatar"
+                  placeholder="https://..."
                   className="w-full bg-[#0c0c0e] border border-white/15 focus:border-white rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none transition-colors"
                 />
-                <p className="text-[11px] text-zinc-400 mt-1.5">
-                  Dacă lași gol, se va genera automat un avatar stilizat pe baza numelui tău.
-                </p>
               </div>
 
               <div className="pt-2">
@@ -643,7 +642,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   className="bg-white hover:bg-zinc-200 text-black font-['Montserrat'] text-xs font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95 shadow-[0_2px_12px_rgba(255,255,255,0.15)]"
                 >
                   <Check className="w-4 h-4 text-black stroke-[3]" />
-                  <span>{isSaved ? 'Profil Salvat cu Succes!' : 'Salvează Modificările'}</span>
+                  <span>{isSaved ? t('profileSaved') : t('saveChanges')}</span>
                 </button>
               </div>
             </form>

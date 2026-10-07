@@ -2,8 +2,8 @@ import React, { useState, useRef } from 'react';
 import { Download, Info, Check, Copy, Gauge, ShieldCheck, Terminal, HardDrive } from 'lucide-react';
 import type { FiveMScript } from '../types/script';
 import { incrementDownloadCount } from '../lib/supabase';
-
 import { securityShield } from '../lib/security';
+import { useTranslation } from '../lib/i18n';
 
 interface ScriptCardProps {
   script: FiveMScript;
@@ -20,7 +20,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   onDownloadIncrement,
   onSecurityAlert
 }) => {
-
+  const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [downloadCount, setDownloadCount] = useState<number>(script.downloads || 0);
@@ -195,7 +195,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                     }
                   }}
                   className="pointer-events-auto px-2.5 py-1 rounded-md bg-black/85 hover:bg-black backdrop-blur-md text-[10px] font-mono text-zinc-300 hover:text-white border border-white/15 hover:border-white/30 cursor-pointer transition-colors shadow-sm"
-                  title={`Vezi profilul creatorului ${script.author}`}
+                  title={`Creator: ${script.author}`}
                 >
                   {script.author}
                 </button>
@@ -204,7 +204,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               {/* Live Download Counter Badge */}
               <span className="px-2.5 py-1 rounded-md bg-black/85 backdrop-blur-md text-[10px] font-mono text-zinc-200 border border-white/15 flex items-center gap-1.5 shadow-sm">
                 <Download className="w-3 h-3 text-zinc-300" />
-                <span>{downloadCount} {downloadCount === 1 ? 'descărcare' : 'descărcări'}</span>
+                <span>{downloadCount} {downloadCount === 1 ? t('downloadSingle') : t('downloads')}</span>
               </span>
             </div>
           </div>
@@ -232,15 +232,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                   }
                 }}
                 className="text-[11px] text-zinc-400 font-mono flex items-center gap-1 hover:text-white transition-colors cursor-pointer group/author"
-                title={`Vezi profilul creatorului ${script.author}`}
+                title={`Creator: ${script.author}`}
               >
-                <span className="text-zinc-500 group-hover/author:text-zinc-400">Creat de:</span>
+                <span className="text-zinc-500 group-hover/author:text-zinc-400">{t('createdBy')}</span>
                 <span className="text-zinc-200 group-hover/author:text-white font-semibold underline decoration-white/20 underline-offset-2">
                   {script.author || 'Sponex'}
                 </span>
               </button>
             </div>
-
 
             <h2
               onClick={() => onOpenDetails(script)}
@@ -249,7 +248,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               {script.title}
             </h2>
             <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2 mb-4">
-              {script.description || 'Script profesional optimizat pentru FiveM vRP.'}
+              {script.description || 'FiveM vRP script.'}
             </p>
           </div>
 
@@ -263,18 +262,18 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             </div>
             <button
               onClick={handleCopyConfig}
-              title="Copiază comanda"
+              title={t('copyConfig')}
               className="text-[10px] text-zinc-300 hover:text-white flex items-center gap-1 bg-white/[0.08] hover:bg-white/[0.15] px-2.5 py-1 rounded-md transition-colors cursor-pointer shrink-0 font-medium"
             >
               {copied ? (
                 <>
                   <Check className="w-3 h-3 text-white" />
-                  <span>Copiat</span>
+                  <span>{t('copied')}</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3 h-3 text-zinc-400" />
-                  <span>Copiază</span>
+                  <span>{t('copy')}</span>
                 </>
               )}
             </button>
@@ -295,7 +294,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               className="flex-1 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white border border-white/[0.08] font-['Montserrat'] text-xs font-semibold py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
             >
               <Info className="w-3.5 h-3.5 text-zinc-400" />
-              <span>Detalii</span>
+              <span>{t('details')}</span>
             </button>
 
             <a
@@ -307,7 +306,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               className="flex-1 bg-white hover:bg-zinc-200 text-black font-['Montserrat'] text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-[0_2px_12px_rgba(255,255,255,0.12)] transition-all cursor-pointer active:scale-95"
             >
               <Download className="w-3.5 h-3.5 text-black" />
-              <span>Descarcă</span>
+              <span>{t('download')}</span>
             </a>
           </div>
         </div>

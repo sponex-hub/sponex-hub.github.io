@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Check, Copy, Download, Terminal } from 'lucide-react';
 import type { FiveMScript } from '../types/script';
+import { useTranslation } from '../lib/i18n';
 
 interface ScriptModalProps {
   script: FiveMScript | null;
@@ -13,6 +14,7 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
   onClose,
   onOpenAuthorProfile
 }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   if (!script) return null;
@@ -61,16 +63,15 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
               }}
               className="text-xs text-zinc-300 font-mono hover:text-white cursor-pointer transition-colors"
             >
-              Creat de <span className="text-white font-bold underline decoration-white/30 underline-offset-2">{script.author || 'Sponex'}</span>
+              {t('createdBy')} <span className="text-white font-bold underline decoration-white/30 underline-offset-2">{script.author || 'Sponex'}</span>
             </button>
           </div>
-
 
           <h2 className="font-['Montserrat'] text-xl sm:text-2xl font-bold text-white tracking-tight">
             {script.title}
           </h2>
           <p className="text-xs text-zinc-400 leading-relaxed mt-2">
-            {script.description || 'Fără descriere detaliată.'}
+            {script.description || 'vRP script.'}
           </p>
         </div>
 
@@ -88,19 +89,19 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
         {/* Metadata Specs Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-black/40 border border-white/[0.06] rounded-xl p-4 mb-6">
           <div>
-            <span className="text-[10px] uppercase text-zinc-500 font-medium block">Versiune</span>
+            <span className="text-[10px] uppercase text-zinc-500 font-medium block">{t('version')}</span>
             <strong className="text-xs text-zinc-200 font-mono font-medium">{script.version}</strong>
           </div>
           <div>
-            <span className="text-[10px] uppercase text-zinc-500 font-medium block">Resmon</span>
+            <span className="text-[10px] uppercase text-zinc-500 font-medium block">{t('resmon')}</span>
             <strong className="text-xs text-zinc-200 font-mono font-medium">{script.resmon}</strong>
           </div>
           <div>
-            <span className="text-[10px] uppercase text-zinc-500 font-medium block">Licență</span>
+            <span className="text-[10px] uppercase text-zinc-500 font-medium block">{t('license')}</span>
             <strong className="text-xs text-zinc-200 font-medium">{script.license}</strong>
           </div>
           <div>
-            <span className="text-[10px] uppercase text-zinc-500 font-medium block">Autor</span>
+            <span className="text-[10px] uppercase text-zinc-500 font-medium block">{t('author')}</span>
             <strong className="text-xs text-zinc-200 font-medium">{script.author}</strong>
           </div>
         </div>
@@ -110,7 +111,7 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
           <div className="flex items-center gap-1.5 text-zinc-400 mb-2">
             <Terminal className="w-3.5 h-3.5" />
             <label className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-['Montserrat']">
-              Adaugă în server.cfg
+              {t('addToServerCfg')}
             </label>
           </div>
           <div className="flex items-center justify-between bg-black/80 border border-white/[0.08] rounded-xl px-4 py-3 font-mono text-xs text-zinc-200">
@@ -120,7 +121,7 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
               className="flex items-center gap-1.5 bg-white/[0.06] hover:bg-white/[0.12] text-white text-[11px] px-3 py-1.5 rounded-lg transition-colors cursor-pointer ml-3 shrink-0"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-zinc-400" />}
-              <span>{copied ? 'Copiat' : 'Copiază'}</span>
+              <span>{copied ? t('copied') : t('copy')}</span>
             </button>
           </div>
         </div>
@@ -135,7 +136,7 @@ export const ScriptModal: React.FC<ScriptModalProps> = ({
             className="w-full bg-white hover:bg-zinc-100 text-black font-['Montserrat'] text-xs font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-[0_2px_16px_rgba(255,255,255,0.15)] transition-all cursor-pointer"
           >
             <Download className="w-4 h-4 text-black" />
-            <span>Descarcă Arhiva (.zip)</span>
+            <span>{t('downloadZip')}</span>
           </a>
         </div>
       </div>
